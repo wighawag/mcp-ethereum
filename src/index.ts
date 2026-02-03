@@ -3,7 +3,16 @@ import pkg from '../package.json' with {type: 'json'};
 import z from 'zod';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {privateKeyToAccount} from 'viem/accounts';
-import {Chain, createPublicClient, createWalletClient, http, parseAbiItem, encodeFunctionData} from 'viem';
+import {
+	Chain,
+	createPublicClient,
+	createWalletClient,
+	http,
+	parseAbiItem,
+	encodeFunctionData,
+	decodeEventLog,
+	AbiEvent,
+} from 'viem';
 
 export function createServer(
 	params: {chain: Chain; privateKey: `0x${string}`},
@@ -71,7 +80,7 @@ export function createServer(
 				try {
 					// Get current block number
 					const currentBlockNumber = await publicClient.getBlockNumber();
-					
+
 					// Get transaction receipt
 					const receipt = await publicClient.getTransactionReceipt({
 						hash: txHash as `0x${string}`,
@@ -152,11 +161,15 @@ export function createServer(
 				value: z
 					.string()
 					.optional()
-					.describe('Optional amount of ETH to send in wei (e.g., "1000000000000000000" for 1 ETH)'),
+					.describe(
+						'Optional amount of ETH to send in wei (e.g., "1000000000000000000" for 1 ETH)',
+					),
 				abi: z
 					.string()
 					.optional()
-					.describe('Optional ABI element for the function to call (e.g., "function transfer(address to, uint256 amount)")'),
+					.describe(
+						'Optional ABI element for the function to call (e.g., "function transfer(address to, uint256 amount)")',
+					),
 				args: z
 					.array(z.union([z.string(), z.number(), z.boolean()]))
 					.optional()
@@ -192,6 +205,133 @@ export function createServer(
 									status: 'sent',
 									txHash: hash,
 									message: `Transaction sent successfully. Use the hash to monitor confirmation: ${hash}`,
+								},
+								null,
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								null,
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get-contract-logs',
+		{
+			description: 'Fetch logs for a contract, optionally decoding them using event ABI',
+			inputSchema: {
+				contractAddress: z.string().describe('Contract address to fetch logs from'),
+				fromBlock: z
+					.union([z.number(), z.literal('latest'), z.literal('pending')])
+					.optional()
+					.describe('Starting block number (or "latest", "pending")'),
+				toBlock: z
+					.union([z.number(), z.literal('latest'), z.literal('pending')])
+					.optional()
+					.describe('Ending block number (or "latest", "pending")'),
+				eventAbis: z
+					.array(z.string())
+					.optional()
+					.describe(
+						'Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format',
+					),
+			},
+		},
+		async ({contractAddress, fromBlock, toBlock, eventAbis}, extra): Promise<CallToolResult> => {
+			try {
+				const filter: any = {
+					address: contractAddress as `0x${string}`,
+					fromBlock:
+						fromBlock !== undefined
+							? typeof fromBlock === 'number'
+								? BigInt(fromBlock)
+								: fromBlock
+							: 'latest',
+					toBlock:
+						toBlock !== undefined
+							? typeof toBlock === 'number'
+								? BigInt(toBlock)
+								: toBlock
+							: 'latest',
+				};
+
+				const logs = await publicClient.getLogs(filter);
+
+				let decodedLogs = logs;
+
+				// If event ABIs are provided, decode the logs
+				if (eventAbis && eventAbis.length > 0) {
+					// Parse all event ABIs (support both Solidity and JSON formats)
+					const abiEvents: AbiEvent[] = [];
+					for (const eventAbi of eventAbis) {
+						try {
+							// Try parsing as JSON first
+							const parsed = JSON.parse(eventAbi);
+							if (parsed.type === 'event') {
+								abiEvents.push(parsed);
+							}
+						} catch {
+							// If JSON parsing fails, treat as Solidity format
+							const abiItem = parseAbiItem(eventAbi);
+							if (abiItem.type === 'event') {
+								abiEvents.push(abiItem);
+							}
+						}
+					}
+
+					// Try to decode each log against all provided event ABIs
+					decodedLogs = logs.map((log) => {
+						let decodedLog: any = {...log};
+
+						try {
+							const decoded = decodeEventLog({
+								abi: abiEvents,
+								data: log.data,
+								topics: log.topics,
+							});
+							decodedLog.decoded = decoded;
+							// Successfully decoded, no need to try other events
+						} catch {
+							// This log cannot be decoded with the abi provided
+						}
+
+						// If no event matched the log
+						if (!decodedLog.decoded) {
+							decodedLog.decodeError = 'No matching event ABI found for this log';
+						}
+
+						return decodedLog;
+					});
+				}
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(
+								{
+									contractAddress,
+									fromBlock,
+									toBlock,
+									totalLogs: logs.length,
+									logs: decodedLogs,
 								},
 								null,
 								2,

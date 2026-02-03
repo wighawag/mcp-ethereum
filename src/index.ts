@@ -12,6 +12,8 @@ import {
 	encodeFunctionData,
 	decodeEventLog,
 	AbiEvent,
+	SendTransactionParameters,
+	Account,
 } from 'viem';
 
 // Helper function to handle BigInt serialization in JSON.stringify
@@ -205,7 +207,7 @@ export function createServer(
 					};
 				}
 
-				const txParams: any = {
+				const txParams: SendTransactionParameters<Chain, Account> = {
 					to: to as `0x${string}`,
 				};
 
@@ -246,6 +248,7 @@ export function createServer(
 							text: stringifyWithBigInt(
 								{
 									error: error instanceof Error ? error.message : String(error),
+									stack: error instanceof Error ? error.stack : undefined,
 								},
 								2,
 							),

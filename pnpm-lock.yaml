@@ -33,6 +33,9 @@ importers:
       as-soon:
         specifier: ^0.1.5
         version: 0.1.5
+      ldenv:
+        specifier: ^0.3.16
+        version: 0.3.16
       prettier:
         specifier: ^3.8.0
         version: 3.8.1

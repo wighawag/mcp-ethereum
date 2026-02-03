@@ -33,7 +33,11 @@ if (!options.rpcUrl) {
 const transport = new StdioServerTransport();
 
 const rpc = createCurriedJSONRPC<Methods>(options.rpcUrl);
-const chainIDAsHex = await rpc.call('eth_chainId')();
+const response = await rpc.call('eth_chainId')();
+if (!response.success) {
+	throw new Error('Failed to get chain ID');
+}
+const chainIDAsHex = response.value;
 
 const chain = {
 	id: Number(chainIDAsHex),

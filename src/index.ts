@@ -2,8 +2,10 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import pkg from '../package.json' with {type: 'json'};
 import z from 'zod';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+import {createCurriedJSONRPC} from 'remote-procedure-call';
+import {Methods} from 'eip-1193';
 
-export function createServer() {
+export function createServer(rpcUrl: string) {
 	const server = new McpServer(
 		{
 			name: 'ethereum-mcp-server',
@@ -12,19 +14,18 @@ export function createServer() {
 		{capabilities: {logging: {}}},
 	);
 
+	const rpc = createCurriedJSONRPC<Methods>(rpcUrl);
+
 	server.registerTool(
-		'start-notification-stream',
+		'wait-for-transaction-confirmation',
 		{
 			description: 'Wait For Transaction Confirmation',
 			inputSchema: {
-				interval: z
-					.number()
-					.describe('Interval in milliseconds between notifications')
-					.default(100),
-				count: z.number().describe('Number of notifications to send (0 for 100)').default(10),
+				interval: z.number().describe('Interval in seconds between fetch').default(1),
+				timeout: z.number().describe('how many seconds to wait').default(10),
 			},
 		},
-		async ({interval, count}, extra): Promise<CallToolResult> => {
+		async ({interval, timeout}, extra): Promise<CallToolResult> => {
 			const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 			let counter = 0;
 

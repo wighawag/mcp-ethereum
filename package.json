@@ -17,6 +17,9 @@
 			"import": "./dist/index.js"
 		}
 	},
+	"bin": {
+		"ethereum-mcp": "./dist/cli.js"
+	},
 	"files": [
 		"dist",
 		"src"

@@ -21,6 +21,10 @@ export function createServer(rpcUrl: string) {
 		{
 			description: 'Wait For Transaction Confirmation',
 			inputSchema: {
+				expectedConformations: z
+					.number()
+					.describe('Number of confirmations to wait for')
+					.default(1),
 				interval: z.number().describe('Interval in seconds between fetch').default(1),
 				timeout: z.number().describe('how many seconds to wait').default(10),
 			},

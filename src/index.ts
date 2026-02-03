@@ -359,5 +359,135 @@ export function createServer(
 		},
 	);
 
+	server.registerTool(
+		'get-transaction-logs',
+		{
+			description: 'Get the events/logs of a transaction, optionally decoding them using event ABI',
+			inputSchema: {
+				txHash: z
+					.string()
+					.regex(/^0x[a-fA-F0-9]{64}$/)
+					.describe('Transaction hash to get logs from'),
+				eventAbis: z
+					.array(z.string())
+					.optional()
+					.describe(
+						'Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format',
+					),
+			},
+		},
+		async ({txHash, eventAbis}, extra): Promise<CallToolResult> => {
+			try {
+				// Get transaction receipt which contains the logs
+				const receipt = await publicClient.getTransactionReceipt({
+					hash: txHash as `0x${string}`,
+				});
+
+				if (!receipt) {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: JSON.stringify(
+									{
+										error: 'Transaction not found or not yet mined',
+										txHash,
+									},
+									null,
+									2,
+								),
+							},
+						],
+						isError: true,
+					};
+				}
+
+				let decodedLogs = receipt.logs;
+
+				// If event ABIs are provided, decode the logs
+				if (eventAbis && eventAbis.length > 0) {
+					// Parse all event ABIs (support both Solidity and JSON formats)
+					const abiEvents: AbiEvent[] = [];
+					for (const eventAbi of eventAbis) {
+						try {
+							// Try parsing as JSON first
+							const parsed = JSON.parse(eventAbi);
+							if (parsed.type === 'event') {
+								abiEvents.push(parsed);
+							}
+						} catch {
+							// If JSON parsing fails, treat as Solidity format
+							const abiItem = parseAbiItem(eventAbi);
+							if (abiItem.type === 'event') {
+								abiEvents.push(abiItem);
+							}
+						}
+					}
+
+					// Try to decode each log against all provided event ABIs
+					decodedLogs = receipt.logs.map((log) => {
+						let decodedLog: any = {...log};
+						
+						try {
+							const decoded = decodeEventLog({
+								abi: abiEvents,
+								data: log.data,
+								topics: log.topics,
+							});
+							decodedLog.decoded = decoded;
+						} catch {
+							// This log cannot be decoded with the abi provided
+						}
+
+						// If no event matched the log
+						if (!decodedLog.decoded) {
+							decodedLog.decodeError = 'No matching event ABI found for this log';
+						}
+
+						return decodedLog;
+					});
+				}
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(
+								{
+									txHash,
+									blockNumber: receipt.blockNumber,
+									transactionHash: receipt.transactionHash,
+									from: receipt.from,
+									to: receipt.to,
+									status: receipt.status,
+									totalLogs: receipt.logs.length,
+									logs: decodedLogs,
+								},
+								null,
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								null,
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
 	return server;
 }

@@ -2,8 +2,6 @@
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {createServer} from './index.js';
 import {Command} from 'commander';
-import {createCurriedJSONRPC} from 'remote-procedure-call';
-import {Methods} from 'eip-1193';
 import pkg from '../package.json' with {type: 'json'};
 import {getChain} from './helpers.js';
 

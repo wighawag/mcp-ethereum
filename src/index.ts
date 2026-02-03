@@ -16,6 +16,7 @@ import {
 	Account,
 } from 'viem';
 import {ServerOptions} from '@modelcontextprotocol/sdk/server';
+import {getClients} from './helpers.js';
 
 // Helper function to handle BigInt serialization in JSON.stringify
 function stringifyWithBigInt(obj: any, space?: number): string {
@@ -28,22 +29,9 @@ function stringifyWithBigInt(obj: any, space?: number): string {
 
 export function createServer(
 	params: {chain: Chain; privateKey?: `0x${string}`},
-	options?: {rpcURL: string; serverOptions?: ServerOptions; serverInfo?: Implementation},
+	options?: {rpcURL?: string; serverOptions?: ServerOptions; serverInfo?: Implementation},
 ) {
-	const {chain, privateKey} = params;
-	const account = privateKey ? privateKeyToAccount(privateKey) : undefined;
-	const transport = http(options?.rpcURL || chain.rpcUrls.default.http[0]);
-	const walletClient = account
-		? createWalletClient({
-				account,
-				chain,
-				transport,
-			})
-		: undefined;
-	const publicClient = createPublicClient({
-		chain,
-		transport,
-	});
+	const {publicClient, walletClient} = getClients(params, options);
 
 	const server = new McpServer(
 		options?.serverInfo || {

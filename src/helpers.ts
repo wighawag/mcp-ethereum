@@ -1,5 +1,7 @@
 import {Methods} from 'eip-1193';
 import {createCurriedJSONRPC} from 'remote-procedure-call';
+import {Chain, createPublicClient, createWalletClient, http} from 'viem';
+import {privateKeyToAccount} from 'viem/accounts';
 
 export async function getChain(rpcUrl: string) {
 	const rpc = createCurriedJSONRPC<Methods>(rpcUrl);
@@ -24,4 +26,26 @@ export async function getChain(rpcUrl: string) {
 		},
 	};
 	return chain;
+}
+
+export function getClients(
+	params: {chain: Chain; privateKey?: `0x${string}`},
+	options?: {rpcURL?: string},
+) {
+	const {chain, privateKey} = params;
+	const account = privateKey ? privateKeyToAccount(privateKey) : undefined;
+	const transport = http(options?.rpcURL || chain.rpcUrls.default.http[0]);
+	const walletClient = account
+		? createWalletClient({
+				account,
+				chain,
+				transport,
+			})
+		: undefined;
+	const publicClient = createPublicClient({
+		chain,
+		transport,
+	});
+
+	return {walletClient, publicClient};
 }

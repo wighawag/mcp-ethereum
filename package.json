@@ -1,6 +1,6 @@
 {
 	"name": "mcp-ethereum",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "MCP for ethereum",
 	"author": "Ronan Sandford",
 	"license": "MIT",
@@ -49,6 +49,8 @@
 	},
 	"scripts": {
 		"prepublishOnly": "pnpm format:check && pnpm build",
+		"changeset:create": "pnpm changeset",
+		"changeset:version": "pnpm changeset version",
 		"release": "pnpm prepublishOnly && git push --all && pnpm changeset publish && git push --tags",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",

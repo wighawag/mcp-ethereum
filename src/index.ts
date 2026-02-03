@@ -3,7 +3,7 @@ import pkg from '../package.json' with {type: 'json'};
 import z from 'zod';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {privateKeyToAccount} from 'viem/accounts';
-import {Chain, createPublicClient, createWalletClient, http} from 'viem';
+import {Chain, createPublicClient, createWalletClient, http, parseAbiItem, encodeFunctionData} from 'viem';
 
 export function createServer(
 	params: {chain: Chain; privateKey: `0x${string}`},
@@ -140,6 +140,82 @@ export function createServer(
 					},
 				],
 			};
+		},
+	);
+
+	server.registerTool(
+		'send-transaction',
+		{
+			description: 'Send a transaction, optionally calling a contract function with ABI',
+			inputSchema: {
+				to: z.string().describe('Recipient address or contract address'),
+				value: z
+					.string()
+					.optional()
+					.describe('Optional amount of ETH to send in wei (e.g., "1000000000000000000" for 1 ETH)'),
+				abi: z
+					.string()
+					.optional()
+					.describe('Optional ABI element for the function to call (e.g., "function transfer(address to, uint256 amount)")'),
+				args: z
+					.array(z.union([z.string(), z.number(), z.boolean()]))
+					.optional()
+					.describe('Optional arguments to pass to the function'),
+			},
+		},
+		async ({to, value, abi, args}, extra): Promise<CallToolResult> => {
+			try {
+				const txParams: any = {
+					to: to as `0x${string}`,
+				};
+
+				if (value) {
+					txParams.value = BigInt(value);
+				}
+
+				// If ABI is provided, encode the function call
+				if (abi && args) {
+					txParams.data = encodeFunctionData({
+						abi: [parseAbiItem(abi)],
+						args,
+					});
+				}
+
+				const hash = await walletClient.sendTransaction(txParams);
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(
+								{
+									status: 'sent',
+									txHash: hash,
+									message: `Transaction sent successfully. Use the hash to monitor confirmation: ${hash}`,
+								},
+								null,
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								null,
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
 		},
 	);
 

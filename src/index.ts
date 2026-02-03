@@ -1,7 +1,7 @@
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import pkg from '../package.json' with {type: 'json'};
 import z from 'zod';
-import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+import {CallToolResult, Implementation} from '@modelcontextprotocol/sdk/types.js';
 import {privateKeyToAccount} from 'viem/accounts';
 import {
 	Chain,
@@ -15,6 +15,7 @@ import {
 	SendTransactionParameters,
 	Account,
 } from 'viem';
+import {ServerOptions} from '@modelcontextprotocol/sdk/server';
 
 // Helper function to handle BigInt serialization in JSON.stringify
 function stringifyWithBigInt(obj: any, space?: number): string {
@@ -27,7 +28,7 @@ function stringifyWithBigInt(obj: any, space?: number): string {
 
 export function createServer(
 	params: {chain: Chain; privateKey?: `0x${string}`},
-	options?: {rpcURL: string},
+	options?: {rpcURL: string; serverOptions?: ServerOptions; serverInfo?: Implementation},
 ) {
 	const {chain, privateKey} = params;
 	const account = privateKey ? privateKeyToAccount(privateKey) : undefined;
@@ -45,11 +46,11 @@ export function createServer(
 	});
 
 	const server = new McpServer(
-		{
+		options?.serverInfo || {
 			name: 'ethereum-mcp-server',
 			version: pkg.version,
 		},
-		{capabilities: {logging: {}}},
+		options?.serverOptions || {capabilities: {logging: {}}},
 	);
 
 	server.registerTool(

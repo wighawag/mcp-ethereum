@@ -194,7 +194,8 @@ export function createServer(
 								type: 'text',
 								text: stringifyWithBigInt(
 									{
-										error: 'privateKey not provided. Cannot send transactions without a private key.',
+										error:
+											'privateKey not provided. Cannot send transactions without a private key.',
 									},
 									2,
 								),
@@ -448,7 +449,7 @@ export function createServer(
 					// Try to decode each log against all provided event ABIs
 					decodedLogs = receipt.logs.map((log) => {
 						let decodedLog: any = {...log};
-						
+
 						try {
 							const decoded = decodeEventLog({
 								abi: abiEvents,

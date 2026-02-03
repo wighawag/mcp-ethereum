@@ -14,6 +14,15 @@ import {
 	AbiEvent,
 } from 'viem';
 
+// Helper function to handle BigInt serialization in JSON.stringify
+function stringifyWithBigInt(obj: any, space?: number): string {
+	return JSON.stringify(
+		obj,
+		(_key, value) => (typeof value === 'bigint' ? value.toString() : value),
+		space,
+	);
+}
+
 export function createServer(
 	params: {chain: Chain; privateKey?: `0x${string}`},
 	options?: {rpcURL: string},
@@ -101,7 +110,7 @@ export function createServer(
 								content: [
 									{
 										type: 'text',
-										text: JSON.stringify(
+										text: stringifyWithBigInt(
 											{
 												status: 'confirmed',
 												txHash,
@@ -109,7 +118,6 @@ export function createServer(
 												confirmations,
 												receipt,
 											},
-											null,
 											2,
 										),
 									},
@@ -139,13 +147,12 @@ export function createServer(
 				content: [
 					{
 						type: 'text',
-						text: JSON.stringify(
+						text: stringifyWithBigInt(
 							{
 								status: 'timeout',
 								txHash,
 								message: `Timeout reached after ${timeout} seconds`,
 							},
-							null,
 							2,
 						),
 					},
@@ -185,11 +192,10 @@ export function createServer(
 						content: [
 							{
 								type: 'text',
-								text: JSON.stringify(
+								text: stringifyWithBigInt(
 									{
 										error: 'privateKey not provided. Cannot send transactions without a private key.',
 									},
-									null,
 									2,
 								),
 							},
@@ -220,13 +226,12 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(
+							text: stringifyWithBigInt(
 								{
 									status: 'sent',
 									txHash: hash,
 									message: `Transaction sent successfully. Use the hash to monitor confirmation: ${hash}`,
 								},
-								null,
 								2,
 							),
 						},
@@ -237,11 +242,10 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(
+							text: stringifyWithBigInt(
 								{
 									error: error instanceof Error ? error.message : String(error),
 								},
-								null,
 								2,
 							),
 						},
@@ -345,7 +349,7 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(
+							text: stringifyWithBigInt(
 								{
 									contractAddress,
 									fromBlock,
@@ -353,7 +357,6 @@ export function createServer(
 									totalLogs: logs.length,
 									logs: decodedLogs,
 								},
-								null,
 								2,
 							),
 						},
@@ -364,11 +367,10 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(
+							text: stringifyWithBigInt(
 								{
 									error: error instanceof Error ? error.message : String(error),
 								},
-								null,
 								2,
 							),
 						},
@@ -408,12 +410,11 @@ export function createServer(
 						content: [
 							{
 								type: 'text',
-								text: JSON.stringify(
+								text: stringifyWithBigInt(
 									{
 										error: 'Transaction not found or not yet mined',
 										txHash,
 									},
-									null,
 									2,
 								),
 							},
@@ -472,7 +473,7 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(
+							text: stringifyWithBigInt(
 								{
 									txHash,
 									blockNumber: receipt.blockNumber,
@@ -483,7 +484,6 @@ export function createServer(
 									totalLogs: receipt.logs.length,
 									logs: decodedLogs,
 								},
-								null,
 								2,
 							),
 						},
@@ -494,11 +494,10 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(
+							text: stringifyWithBigInt(
 								{
 									error: error instanceof Error ? error.message : String(error),
 								},
-								null,
 								2,
 							),
 						},
@@ -523,7 +522,7 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(block, null, 2),
+							text: stringifyWithBigInt(block, 2),
 						},
 					],
 				};
@@ -532,11 +531,10 @@ export function createServer(
 					content: [
 						{
 							type: 'text',
-							text: JSON.stringify(
+							text: stringifyWithBigInt(
 								{
 									error: error instanceof Error ? error.message : String(error),
 								},
-								null,
 								2,
 							),
 						},

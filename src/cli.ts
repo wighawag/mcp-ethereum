@@ -2,16 +2,16 @@
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {createServer} from './index.js';
 import {Command} from 'commander';
-import {http} from 'viem';
 import {createCurriedJSONRPC} from 'remote-procedure-call';
 import {Methods} from 'eip-1193';
+import pkg from '../package.json' with {type: 'json'};
 
 const program = new Command();
 
 program
-	.name('ethereum-mcp')
-	.description('Ethereum MCP Server')
-	.version('0.0.0')
+	.name(pkg.name)
+	.description(pkg.description)
+	.version(pkg.version)
 	.option('--rpc-url <url>', 'RPC URL for the Ethereum network', '')
 	.parse(process.argv);
 

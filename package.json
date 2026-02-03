@@ -1,9 +1,21 @@
 {
-	"name": "ethereum-mcp",
+	"name": "mcp-ethereum",
 	"version": "0.0.0",
-	"description": "Ethereum MCP",
+	"description": "MCP for ethereum",
 	"author": "Ronan Sandford",
 	"license": "MIT",
+	"keywords": [
+		"mcp",
+		"ethereum"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/wighawag/mcp-ethereum.git"
+	},
+	"homepage": "https://github.com/wighawag/mcp-ethereum#readme",
+	"bugs": {
+		"url": "https://github.com/wighawag/mcp-ethereum/issues"
+	},
 	"publishConfig": {
 		"access": "public"
 	},

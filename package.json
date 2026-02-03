@@ -1,0 +1,45 @@
+{
+	"name": "ethereum-mcp",
+	"version": "0.0.0",
+	"description": "Ethereum MCP",
+	"author": "Ronan Sandford",
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist",
+		"src"
+	],
+	"sideEffects": false,
+	"devDependencies": {
+		"@types/node": "^25.2.0",
+		"as-soon": "^0.1.5",
+		"prettier": "^3.8.0",
+		"tsx": "^4.21.0",
+		"typescript": "^5.3.3",
+		"vitest": "^4.0.18"
+	},
+	"scripts": {
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"build": "tsc",
+		"dev": "as-soon -w src pnpm build",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.25.3",
+		"zod": "^4.3.6"
+	}
+}

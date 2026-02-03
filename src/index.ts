@@ -15,17 +15,19 @@ import {
 } from 'viem';
 
 export function createServer(
-	params: {chain: Chain; privateKey: `0x${string}`},
+	params: {chain: Chain; privateKey?: `0x${string}`},
 	options?: {rpcURL: string},
 ) {
 	const {chain, privateKey} = params;
-	const account = privateKeyToAccount(privateKey);
+	const account = privateKey ? privateKeyToAccount(privateKey) : undefined;
 	const transport = http(options?.rpcURL || chain.rpcUrls.default.http[0]);
-	const walletClient = createWalletClient({
-		account,
-		chain,
-		transport,
-	});
+	const walletClient = account
+		? createWalletClient({
+				account,
+				chain,
+				transport,
+			})
+		: undefined;
 	const publicClient = createPublicClient({
 		chain,
 		transport,
@@ -178,6 +180,24 @@ export function createServer(
 		},
 		async ({to, value, abi, args}, extra): Promise<CallToolResult> => {
 			try {
+				if (!walletClient) {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: JSON.stringify(
+									{
+										error: 'privateKey not provided. Cannot send transactions without a private key.',
+									},
+									null,
+									2,
+								),
+							},
+						],
+						isError: true,
+					};
+				}
+
 				const txParams: any = {
 					to: to as `0x${string}`,
 				};

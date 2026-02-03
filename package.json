@@ -10,7 +10,7 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/wighawag/mcp-ethereum.git"
+		"url": "git+https://github.com/wighawag/mcp-ethereum.git"
 	},
 	"homepage": "https://github.com/wighawag/mcp-ethereum#readme",
 	"bugs": {
@@ -30,7 +30,7 @@
 		}
 	},
 	"bin": {
-		"ethereum-mcp": "./dist/cli.js"
+		"mcp-ethereum": "dist/cli.js"
 	},
 	"files": [
 		"dist",
@@ -46,6 +46,7 @@
 		"vitest": "^4.0.18"
 	},
 	"scripts": {
+		"prepublish": "format:check && pnpm build",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"build": "tsc",

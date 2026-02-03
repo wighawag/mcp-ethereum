@@ -489,5 +489,43 @@ export function createServer(
 		},
 	);
 
+	server.registerTool(
+		'get-latest-block',
+		{
+			description: 'Get the latest block information',
+			inputSchema: {},
+		},
+		async (_params, extra): Promise<CallToolResult> => {
+			try {
+				const block = await publicClient.getBlock();
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(block, null, 2),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: JSON.stringify(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								null,
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
 	return server;
 }

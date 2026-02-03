@@ -2,12 +2,25 @@ import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import pkg from '../package.json' with {type: 'json'};
 import z from 'zod';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
-import {createCurriedJSONRPC} from 'remote-procedure-call';
-import {Methods} from 'eip-1193';
 import {privateKeyToAccount} from 'viem/accounts';
+import {Chain, createPublicClient, createWalletClient, http} from 'viem';
 
-export function createServer(rpcUrl: string, privateKey: `0x${string}`) {
+export function createServer(
+	params: {chain: Chain; privateKey: `0x${string}`},
+	options?: {rpcURL: string},
+) {
+	const {chain, privateKey} = params;
 	const account = privateKeyToAccount(privateKey);
+	const transport = http(options?.rpcURL || chain.rpcUrls.default.http[0]);
+	const walletClient = createWalletClient({
+		account,
+		chain,
+		transport,
+	});
+	const publicClient = createPublicClient({
+		chain,
+		transport,
+	});
 
 	const server = new McpServer(
 		{
@@ -16,8 +29,6 @@ export function createServer(rpcUrl: string, privateKey: `0x${string}`) {
 		},
 		{capabilities: {logging: {}}},
 	);
-
-	const rpc = createCurriedJSONRPC<Methods>(rpcUrl);
 
 	server.registerTool(
 		'wait-for-transaction-confirmation',
@@ -59,23 +70,15 @@ export function createServer(rpcUrl: string, privateKey: `0x${string}`) {
 			while (Date.now() - startTime < timeoutMs) {
 				try {
 					// Get current block number
-					const currentBlockResult = await rpc.call('eth_blockNumber')();
-					if (!currentBlockResult.success) {
-						throw new Error(`Failed to get block number: ${currentBlockResult.error.message}`);
-					}
-					const currentBlockNumber = BigInt(currentBlockResult.value);
-
+					const currentBlockNumber = await publicClient.getBlockNumber();
+					
 					// Get transaction receipt
-					const receiptResult = await rpc.call('eth_getTransactionReceipt')([
-						txHash as `0x${string}`,
-					]);
-					if (!receiptResult.success) {
-						throw new Error(`Failed to get transaction receipt: ${receiptResult.error.message}`);
-					}
-					const receipt = receiptResult.value;
+					const receipt = await publicClient.getTransactionReceipt({
+						hash: txHash as `0x${string}`,
+					});
 
-					if (receipt !== null) {
-						const txBlockNumber = BigInt(receipt.blockNumber);
+					if (receipt) {
+						const txBlockNumber = receipt.blockNumber;
 						const confirmations = Number(currentBlockNumber - txBlockNumber);
 
 						if (confirmations >= expectedConformations) {

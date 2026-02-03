@@ -48,7 +48,7 @@
 	},
 	"scripts": {
 		"prepublishOnly": "pnpm format:check && pnpm build",
-		"release": "pnpm prepublishOnly && pnpm changeset publish",
+		"release": "pnpm prepublishOnly && git push --all && pnpm changeset publish && git push --tags",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"build": "tsc",

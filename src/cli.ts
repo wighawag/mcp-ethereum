@@ -5,6 +5,7 @@ import {Command} from 'commander';
 import {createCurriedJSONRPC} from 'remote-procedure-call';
 import {Methods} from 'eip-1193';
 import pkg from '../package.json' with {type: 'json'};
+import {getChain} from './helpers.js';
 
 const program = new Command();
 
@@ -32,27 +33,7 @@ if (!options.rpcUrl) {
 
 const transport = new StdioServerTransport();
 
-const rpc = createCurriedJSONRPC<Methods>(options.rpcUrl);
-const response = await rpc.call('eth_chainId')();
-if (!response.success) {
-	throw new Error('Failed to get chain ID');
-}
-const chainIDAsHex = response.value;
-
-const chain = {
-	id: Number(chainIDAsHex),
-	name: 'Unknown',
-	nativeCurrency: {
-		decimals: 18,
-		name: 'Ether',
-		symbol: 'ETH',
-	},
-	rpcUrls: {
-		default: {
-			http: [options.rpcUrl],
-		},
-	},
-};
+const chain = await getChain(options.rpcUrl);
 const server = createServer({
 	chain,
 	privateKey: privateKey as `0x${string}`,

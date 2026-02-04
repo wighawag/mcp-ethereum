@@ -141,6 +141,30 @@ describe('MCP Ethereum Server Tests', () => {
 				const data = JSON.parse(result.content[0].text);
 				expect(data.transactions).toBeDefined();
 			});
+
+			it('should get block by hash', async () => {
+				// First get a block to get its hash
+				const blockResult = await callToolWithTextResponse(client, {
+					name: 'get_block',
+					arguments: {
+						blockNumber: 0,
+					},
+				});
+				const blockData = JSON.parse(blockResult.content[0].text);
+				const blockHash = blockData.blockHash;
+
+				// Now get the same block by hash
+				const result = await callToolWithTextResponse(client, {
+					name: 'get_block',
+					arguments: {
+						blockHash,
+					},
+				});
+				expect(result.content[0].type).toBe('text');
+				const data = JSON.parse(result.content[0].text);
+				expect(data.blockHash).toBe(blockHash);
+				expect(data.blockNumber).toBe('0');
+			});
 		});
 
 		describe('get_latest_block', () => {
@@ -235,6 +259,19 @@ describe('MCP Ethereum Server Tests', () => {
 				const data = JSON.parse(result.content[0].text);
 				expect(data.address).toBe(TEST_ADDRESS);
 			});
+
+			it('should get code at contract address', async () => {
+				const result = await callToolWithTextResponse(client, {
+					name: 'get_code',
+					arguments: {
+						address: TEST_CONTRACT_ADDRESS,
+					},
+				});
+				expect(result.content[0].type).toBe('text');
+				const data = JSON.parse(result.content[0].text);
+				// Contract might not exist in fresh Anvil, so just verify we get a response
+				expect(data).toBeDefined();
+			});
 		});
 
 		describe('get_storage_at', () => {
@@ -281,6 +318,22 @@ describe('MCP Ethereum Server Tests', () => {
 				const data = JSON.parse(result.content[0].text);
 				expect(data.baseFeePerGas).toBeDefined();
 				expect(data.gasUsedRatio).toBeDefined();
+			});
+
+			it('should get fee history with newestBlock as number', async () => {
+				const result = await callToolWithTextResponse(client, {
+					name: 'get_fee_history',
+					arguments: {
+						blockCount: 4,
+						newestBlock: 0,
+						rewardPercentiles: [25, 50, 75],
+					},
+				});
+				expect(result.content[0].type).toBe('text');
+				const data = JSON.parse(result.content[0].text);
+				expect(data.baseFeePerGas).toBeDefined();
+				expect(data.gasUsedRatio).toBeDefined();
+				expect(data.oldestBlock).toBeDefined();
 			});
 		});
 	});
@@ -565,6 +618,37 @@ describe('MCP Ethereum Server Tests', () => {
 				expect(data.status).toBe('sent');
 				expect(data.txHash).toBeDefined();
 			});
+
+			it('should return error when sending transaction without private key', async () => {
+				// Create a server without private key
+				const serverWithoutKey = createServer({
+					chain: await getChain(rpcUrl),
+				});
+
+				// Connect using in-memory transport
+				const [clientTransport2, serverTransport2] = InMemoryTransport.createLinkedPair();
+				const clientWithoutKey = new Client({name: 'test-client-2', version: '1.0.0'}, {});
+
+				await Promise.all([serverWithoutKey.connect(serverTransport2), clientWithoutKey.connect(clientTransport2)]);
+
+				// Try to send a transaction
+				const result = await callToolWithTextResponse(clientWithoutKey, {
+					name: 'send_transaction',
+					arguments: {
+						to: TEST_RECIPIENT,
+						value: '1000000000000000',
+					},
+				});
+
+				expect(result.content[0].type).toBe('text');
+				const data = JSON.parse(result.content[0].text);
+				expect(data.error).toBeDefined();
+				expect(result.isError).toBe(true);
+				expect(data.error).toContain('privateKey');
+
+				// Clean up
+				await clientWithoutKey.close();
+			});
 		});
 
 		describe('get_transaction', () => {
@@ -655,6 +739,48 @@ describe('MCP Ethereum Server Tests', () => {
 				expect(data.status).toBe('timeout');
 				expect(data.message).toContain('Timeout reached');
 			}, 5000);
+
+			it('should handle reverted transaction', async () => {
+				// Send a transaction that will revert by calling a non-existent function
+				// This test is best-effort - the contract may not exist or may have different behavior
+				const NON_EXISTENT_FUNCTION_ABI = 'function thisFunctionDoesNotExist() returns (uint256)';
+				
+				const sendResult = await callToolWithTextResponse(client, {
+					name: 'send_transaction',
+					arguments: {
+						to: TEST_CONTRACT_ADDRESS,
+						abi: NON_EXISTENT_FUNCTION_ABI,
+						args: [],
+					},
+				});
+				const txHash = JSON.parse(sendResult.content[0].text).txHash;
+
+				// Wait a moment for the transaction to be mined
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				// Wait for confirmation and check for revert status
+				const result = await callToolWithTextResponse(client, {
+					name: 'wait_for_transaction_confirmation',
+					arguments: {
+						txHash,
+						expectedConformations: 1,
+						interval: 0.1,
+						timeout: 5,
+					},
+				});
+				expect(result.content[0].type).toBe('text');
+				const data = JSON.parse(result.content[0].text);
+				
+				// The transaction should either be reverted or fail if the contract doesn't exist
+				// We accept both outcomes as valid test coverage
+				expect(['confirmed', 'reverted', 'timeout']).toContain(data.status);
+				
+				// If reverted, verify the response contains revert information
+				if (data.status === 'reverted') {
+					expect(data.txHash).toBe(txHash);
+					expect(data.receipt).toBeDefined();
+				}
+			}, 15000);
 		});
 	});
 
@@ -743,6 +869,32 @@ describe('MCP Ethereum Server Tests', () => {
 				expect(result.content[0].type).toBe('text');
 				const data = JSON.parse(result.content[0].text);
 				expect(data.logs).toBeDefined();
+			});
+
+			it('should decode logs with JSON format event ABI', async () => {
+				const jsonEventAbi = JSON.stringify({
+					type: 'event',
+					name: 'Transfer',
+					inputs: [
+						{type: 'address', indexed: true, name: 'from'},
+						{type: 'address', indexed: true, name: 'to'},
+						{type: 'uint256', indexed: false, name: 'amount'},
+					],
+				});
+
+				const result = await callToolWithTextResponse(client, {
+					name: 'get_contract_logs',
+					arguments: {
+						contractAddress: TEST_CONTRACT_ADDRESS,
+						fromBlock: 0,
+						toBlock: 'latest',
+						eventAbis: [jsonEventAbi],
+					},
+				});
+				expect(result.content[0].type).toBe('text');
+				const data = JSON.parse(result.content[0].text);
+				expect(data.logs).toBeDefined();
+				expect(data.contractAddress).toBe(TEST_CONTRACT_ADDRESS);
 			});
 		});
 

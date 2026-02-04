@@ -1,4 +1,4 @@
-import {describe, it, expect, beforeAll, afterAll} from 'vitest';
+import {describe, it, expect, beforeAll, afterAll, assert} from 'vitest';
 import {createServer} from '../src/index.js';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {Client} from '@modelcontextprotocol/sdk/client';
@@ -7,12 +7,14 @@ import {getChain} from '../src/helpers.js';
 import {Server} from 'prool';
 import {Instance} from 'prool';
 import {callToolWithTextResponse} from './utils/index.js';
+import {TEST_CONTRACT_ABI, TEST_CONTRACT_ADDRESS, TEST_CONTRACT_BYTECODE} from './utils/data.js';
+import {createPublicClient, createWalletClient, http} from 'viem';
 
 // Test addresses
-const TEST_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
-const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const TEST_RECIPIENT = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
-const TEST_CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const TEST_DEPLOYER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'; // acount 1
+const TEST_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'; // acount 2
+const TEST_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
+const TEST_RECIPIENT = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'; // acount 3
 
 // Test ABIs
 const ERC20_BALANCE_OF_ABI = 'function balanceOf(address) returns (uint256)';
@@ -44,6 +46,34 @@ describe('MCP Ethereum Server Tests', () => {
 
 		// Create chain with local RPC
 		const chain = await getChain(rpcUrl);
+
+		const walletClient = createWalletClient({chain, transport: http(rpcUrl)});
+		const publicClient = createPublicClient({chain, transport: http(rpcUrl)});
+
+		const hashForDeployment = await walletClient.deployContract({
+			abi: TEST_CONTRACT_ABI,
+			args: [TEST_ADDRESS, 1_000_000n],
+			bytecode: TEST_CONTRACT_BYTECODE,
+			account: TEST_DEPLOYER_ADDRESS,
+		});
+
+		const receiptForDeployment = await publicClient.waitForTransactionReceipt({
+			hash: hashForDeployment,
+		});
+		assert(
+			receiptForDeployment.contractAddress?.toLowerCase() === TEST_CONTRACT_ADDRESS.toLowerCase(),
+		);
+
+		const hashForTokens = await walletClient.writeContract({
+			account: TEST_DEPLOYER_ADDRESS,
+			abi: TEST_CONTRACT_ABI,
+			functionName: 'transfer',
+			args: [TEST_ADDRESS, 1_000n],
+			address: TEST_CONTRACT_ADDRESS,
+		});
+		await publicClient.waitForTransactionReceipt({hash: hashForTokens});
+
+		// console.log(`Contract deployed at ${receipt.contractAddress}`);
 
 		// Create server
 		server = createServer({
@@ -351,12 +381,7 @@ describe('MCP Ethereum Server Tests', () => {
 				});
 				expect(result.content[0].type).toBe('text');
 				const data = JSON.parse(result.content[0].text);
-				// Contract might not exist in fresh Anvil, so check for error or success
-				if (data.error) {
-					expect(data.error).toBeDefined();
-				} else {
-					expect(data.address || data.result).toBeDefined();
-				}
+				expect(data.address || data.result).toBeDefined();
 			});
 
 			it('should call contract with arguments', async () => {
@@ -370,12 +395,7 @@ describe('MCP Ethereum Server Tests', () => {
 				});
 				expect(result.content[0].type).toBe('text');
 				const data = JSON.parse(result.content[0].text);
-				// Contract might not exist in fresh Anvil, so check for error or success
-				if (data.error) {
-					expect(data.error).toBeDefined();
-				} else {
-					expect(data.functionName || data.result).toBeDefined();
-				}
+				expect(data.functionName || data.result).toBeDefined();
 			});
 
 			it('should call contract with blockTag', async () => {
@@ -390,12 +410,8 @@ describe('MCP Ethereum Server Tests', () => {
 				});
 				expect(result.content[0].type).toBe('text');
 				const data = JSON.parse(result.content[0].text);
-				// Contract might not exist in fresh Anvil, so check for error or success
-				if (data.error) {
-					expect(data.error).toBeDefined();
-				} else {
-					expect(data.blockTag || data.result).toBeDefined();
-				}
+
+				expect(data.blockTag || data.result).toBeDefined();
 			});
 
 			it('should return error for non-function ABI', async () => {
@@ -438,6 +454,7 @@ describe('MCP Ethereum Server Tests', () => {
 						args: [TEST_RECIPIENT, 100],
 					},
 				});
+				console.log(result);
 				expect(result.content[0].type).toBe('text');
 				const data = JSON.parse(result.content[0].text);
 				expect(data.gasEstimate).toBeDefined();
@@ -629,7 +646,10 @@ describe('MCP Ethereum Server Tests', () => {
 				const [clientTransport2, serverTransport2] = InMemoryTransport.createLinkedPair();
 				const clientWithoutKey = new Client({name: 'test-client-2', version: '1.0.0'}, {});
 
-				await Promise.all([serverWithoutKey.connect(serverTransport2), clientWithoutKey.connect(clientTransport2)]);
+				await Promise.all([
+					serverWithoutKey.connect(serverTransport2),
+					clientWithoutKey.connect(clientTransport2),
+				]);
 
 				// Try to send a transaction
 				const result = await callToolWithTextResponse(clientWithoutKey, {
@@ -744,7 +764,7 @@ describe('MCP Ethereum Server Tests', () => {
 				// Send a transaction that will revert by calling a non-existent function
 				// This test is best-effort - the contract may not exist or may have different behavior
 				const NON_EXISTENT_FUNCTION_ABI = 'function thisFunctionDoesNotExist() returns (uint256)';
-				
+
 				const sendResult = await callToolWithTextResponse(client, {
 					name: 'send_transaction',
 					arguments: {
@@ -770,11 +790,11 @@ describe('MCP Ethereum Server Tests', () => {
 				});
 				expect(result.content[0].type).toBe('text');
 				const data = JSON.parse(result.content[0].text);
-				
+
 				// The transaction should either be reverted or fail if the contract doesn't exist
 				// We accept both outcomes as valid test coverage
 				expect(['confirmed', 'reverted', 'timeout']).toContain(data.status);
-				
+
 				// If reverted, verify the response contains revert information
 				if (data.status === 'reverted') {
 					expect(data.txHash).toBe(txHash);
@@ -1025,6 +1045,7 @@ describe('MCP Ethereum Server Tests', () => {
 			});
 			expect(result.content[0].type).toBe('text');
 			const text = result.content[0].text;
+			// TODO remove ambiguity:
 			// Error might be in JSON format or plain text
 			if (text.startsWith('{')) {
 				const data = JSON.parse(text);

@@ -11,9 +11,11 @@ import {
 	parseAbiItem,
 	encodeFunctionData,
 	decodeEventLog,
+	decodeFunctionData,
 	AbiEvent,
 	SendTransactionParameters,
 	Account,
+	AbiFunction,
 } from 'viem';
 import {ServerOptions} from '@modelcontextprotocol/sdk/server';
 import {getClients, stringifyWithBigInt} from './helpers.js';
@@ -83,6 +85,45 @@ export function createServer(
 						const txBlockNumber = receipt.blockNumber;
 						const confirmations = Number(currentBlockNumber - txBlockNumber);
 
+						// Check if transaction reverted
+						if (receipt.status === 'reverted') {
+							await sendStatus(
+								`Transaction ${txHash} was reverted`,
+							);
+
+							// Try to get the transaction to include more details
+							const transaction = await publicClient.getTransaction({
+								hash: txHash as `0x${string}`,
+							});
+
+							return {
+								content: [
+									{
+										type: 'text',
+										text: stringifyWithBigInt(
+											{
+												status: 'reverted',
+												txHash,
+												blockNumber: receipt.blockNumber,
+												confirmations,
+												receipt,
+												gasUsed: receipt.gasUsed?.toString(),
+												effectiveGasPrice: receipt.effectiveGasPrice?.toString(),
+												transaction,
+											},
+											2,
+										),
+									},
+								],
+								isError: true,
+							};
+						}
+
+						// Get block for timestamp
+						const block = await publicClient.getBlock({
+							blockNumber: receipt.blockNumber,
+						});
+
 						if (confirmations >= expectedConformations) {
 							await sendStatus(
 								`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
@@ -97,6 +138,7 @@ export function createServer(
 												status: 'confirmed',
 												txHash,
 												blockNumber: receipt.blockNumber,
+												timestamp: block?.timestamp,
 												confirmations,
 												receipt,
 											},
@@ -165,9 +207,19 @@ export function createServer(
 					.array(z.union([z.string(), z.number(), z.boolean()]))
 					.optional()
 					.describe('Optional arguments to pass to the function'),
+				maxFeePerGas: z
+					.string()
+					.optional()
+					.describe('Optional EIP-1559 max fee per gas in wei'),
+				maxPriorityFeePerGas: z
+					.string()
+					.optional()
+					.describe('Optional EIP-1559 max priority fee per gas in wei'),
+				gas: z.string().optional().describe('Optional gas limit in wei'),
+				nonce: z.number().optional().describe('Optional nonce for the transaction'),
 			},
 		},
-		async ({to, value, abi, args}, extra): Promise<CallToolResult> => {
+		async ({to, value, abi, args, maxFeePerGas, maxPriorityFeePerGas, gas, nonce}, extra): Promise<CallToolResult> => {
 			try {
 				if (!walletClient) {
 					return {
@@ -201,6 +253,22 @@ export function createServer(
 						abi: [parseAbiItem(abi)],
 						args,
 					});
+				}
+
+				// EIP-1559 support
+				if (maxFeePerGas) {
+					txParams.maxFeePerGas = BigInt(maxFeePerGas);
+				}
+				if (maxPriorityFeePerGas) {
+					txParams.maxPriorityFeePerGas = BigInt(maxPriorityFeePerGas);
+				}
+
+				// Optional gas limit and nonce
+				if (gas) {
+					txParams.gas = BigInt(gas);
+				}
+				if (nonce !== undefined) {
+					txParams.nonce = nonce;
 				}
 
 				const hash = await walletClient.sendTransaction(txParams);
@@ -507,6 +575,949 @@ export function createServer(
 						{
 							type: 'text',
 							text: stringifyWithBigInt(block, 2),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	// Phase 1: Core Missing Functionality
+
+	server.registerTool(
+		'call_contract',
+		{
+			description: 'Call a read-only contract function (view/pure) without spending gas',
+			inputSchema: {
+				address: z.string().describe('Contract address to call'),
+				abi: z
+					.string()
+					.describe(
+						'Function ABI (e.g., "function balanceOf(address) returns (uint256)" or "function totalSupply() returns (uint256)")',
+					),
+				args: z
+					.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
+					.optional()
+					.describe('Optional arguments to pass to the function'),
+				blockTag: z
+					.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+					.optional()
+					.describe('Block tag to query (default: "latest")'),
+			},
+		},
+		async ({address, abi, args, blockTag}, _extra): Promise<CallToolResult> => {
+			try {
+				const abiItem = parseAbiItem(abi);
+				if (abiItem.type !== 'function') {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: stringifyWithBigInt(
+									{error: 'Provided ABI is not a function'},
+									2,
+								),
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const result = await publicClient.readContract({
+					address: address as `0x${string}`,
+					abi: [abiItem as AbiFunction],
+					functionName: (abiItem as AbiFunction).name,
+					args: args as any[],
+					blockTag: blockTag as any,
+				});
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									address,
+									functionName: (abiItem as AbiFunction).name,
+									blockTag,
+									result,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_balance',
+		{
+			description: 'Get ETH balance for an address',
+			inputSchema: {
+				address: z.string().describe('Address to check balance'),
+				blockTag: z
+					.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+					.optional()
+					.describe('Block tag to query (default: "latest")'),
+			},
+		},
+		async ({address, blockTag}, _extra): Promise<CallToolResult> => {
+			try {
+				const balance = await publicClient.getBalance({
+					address: address as `0x${string}`,
+					blockTag: blockTag as any,
+				});
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									address,
+									blockTag,
+									balance: balance.toString(),
+									balanceInEther: Number(balance) / 1e18,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'estimate_gas',
+		{
+			description: 'Estimate gas cost for a transaction before sending',
+			inputSchema: {
+				to: z.string().describe('Recipient address or contract address'),
+				value: z
+					.string()
+					.optional()
+					.describe('Optional amount of ETH to send in wei (e.g., "1000000000000000000" for 1 ETH)'),
+				abi: z
+					.string()
+					.optional()
+					.describe(
+						'Optional ABI element for the function to call (e.g., "function transfer(address to, uint256 amount)")',
+					),
+				args: z
+					.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
+					.optional()
+					.describe('Optional arguments to pass to the function'),
+			},
+		},
+		async ({to, value, abi, args}, _extra): Promise<CallToolResult> => {
+			try {
+				const request: any = {
+					to: to as `0x${string}`,
+				};
+
+				if (value) {
+					request.value = BigInt(value);
+				}
+
+				if (abi && args) {
+					const abiItem = parseAbiItem(abi);
+					if (abiItem.type === 'function') {
+						request.data = encodeFunctionData({
+							abi: [abiItem as AbiFunction],
+							args,
+						});
+					}
+				}
+
+				const gasEstimate = await publicClient.estimateGas(request);
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									to,
+									value: value || '0',
+									gasEstimate: gasEstimate.toString(),
+									gasEstimateInGwei: Number(gasEstimate) / 1e9,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_block',
+		{
+			description: 'Get a specific block by number or hash',
+			inputSchema: {
+				blockNumber: z
+					.union([z.number(), z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe')])
+					.optional()
+					.describe('Block number or tag (default: "latest")'),
+				blockHash: z.string().optional().describe('Block hash (alternative to blockNumber)'),
+				includeTransactions: z
+					.boolean()
+					.optional()
+					.describe('Whether to include full transaction list (default: false)'),
+			},
+		},
+		async ({blockNumber, blockHash, includeTransactions}, _extra): Promise<CallToolResult> => {
+			try {
+				let blockParams: any = {
+					includeTransactions: includeTransactions || false,
+				};
+
+				if (blockHash) {
+					blockParams.blockHash = blockHash as `0x${string}`;
+				} else {
+					blockParams.blockNumber = blockNumber !== undefined ? blockNumber : 'latest';
+				}
+
+				const block = await publicClient.getBlock(blockParams);
+
+				const transactionCount = includeTransactions
+					? block.transactions.length
+					: block.transactions.length;
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									blockNumber: block.number?.toString(),
+									blockHash: block.hash,
+									parentHash: block.parentHash,
+									timestamp: block.timestamp,
+									gasUsed: block.gasUsed?.toString(),
+									gasLimit: block.gasLimit?.toString(),
+									baseFeePerGas: block.baseFeePerGas?.toString(),
+									transactionCount,
+									transactions: includeTransactions ? block.transactions : undefined,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	// Phase 2: Transaction Management
+
+	server.registerTool(
+		'get_transaction',
+		{
+			description: 'Get full transaction details by hash',
+			inputSchema: {
+				txHash: z
+					.string()
+					.regex(/^0x[a-fA-F0-9]{64}$/)
+					.describe('Transaction hash to get details for'),
+			},
+		},
+		async ({txHash}, _extra): Promise<CallToolResult> => {
+			try {
+				const transaction = await publicClient.getTransaction({
+					hash: txHash as `0x${string}`,
+				});
+
+				if (!transaction) {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: stringifyWithBigInt(
+									{error: 'Transaction not found', txHash},
+									2,
+								),
+							},
+						],
+						isError: true,
+					};
+				}
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									hash: transaction.hash,
+									from: transaction.from,
+									to: transaction.to,
+									value: transaction.value?.toString(),
+									gas: transaction.gas?.toString(),
+									maxFeePerGas: transaction.maxFeePerGas?.toString(),
+									maxPriorityFeePerGas: transaction.maxPriorityFeePerGas?.toString(),
+									gasPrice: transaction.gasPrice?.toString(),
+									blockNumber: transaction.blockNumber?.toString(),
+									blockHash: transaction.blockHash,
+									transactionIndex: transaction.transactionIndex,
+									nonce: transaction.nonce,
+									input: transaction.input,
+									type: transaction.type,
+									accessList: transaction.accessList,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_block_number',
+		{
+			description: 'Get current block number',
+			inputSchema: {},
+		},
+		async (_params, _extra): Promise<CallToolResult> => {
+			try {
+				const blockNumber = await publicClient.getBlockNumber();
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									blockNumber: blockNumber.toString(),
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_gas_price',
+		{
+			description: 'Get current gas price',
+			inputSchema: {},
+		},
+		async (_params, _extra): Promise<CallToolResult> => {
+			try {
+				const [gasPrice, feeData] = await Promise.all([
+					publicClient.getGasPrice(),
+					publicClient.estimateFeesPerGas().catch(() => null),
+				]);
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									gasPrice: gasPrice.toString(),
+									gasPriceInGwei: Number(gasPrice) / 1e9,
+									...(feeData
+										? {
+												maxFeePerGas: feeData.maxFeePerGas?.toString(),
+												maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString(),
+												maxFeePerGasInGwei: feeData.maxFeePerGas ? Number(feeData.maxFeePerGas) / 1e9 : undefined,
+												maxPriorityFeePerGasInGwei: feeData.maxPriorityFeePerGas
+													? Number(feeData.maxPriorityFeePerGas) / 1e9
+													: undefined,
+										  }
+										: {}),
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_transaction_count',
+		{
+			description: 'Get transaction count (nonce) for an address',
+			inputSchema: {
+				address: z.string().describe('Address to get transaction count for'),
+				blockTag: z
+					.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+					.optional()
+					.describe('Block tag to query (default: "latest")'),
+			},
+		},
+		async ({address, blockTag}, _extra): Promise<CallToolResult> => {
+			try {
+				const count = await publicClient.getTransactionCount({
+					address: address as `0x${string}`,
+					blockTag: blockTag as any,
+				});
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									address,
+									blockTag,
+									transactionCount: count,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	// Phase 3: Advanced Features
+
+	server.registerTool(
+		'decode_calldata',
+		{
+			description: 'Decode transaction calldata using function ABI',
+			inputSchema: {
+				data: z.string().describe('Transaction calldata to decode'),
+				abi: z
+					.string()
+					.describe(
+						'Function ABI (e.g., "function transfer(address to, uint256 amount)")',
+					),
+			},
+		},
+		async ({data, abi}, _extra): Promise<CallToolResult> => {
+			try {
+				const abiItem = parseAbiItem(abi);
+				if (abiItem.type !== 'function') {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: stringifyWithBigInt(
+									{error: 'Provided ABI is not a function'},
+									2,
+								),
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const decoded = decodeFunctionData({
+					data: data as `0x${string}`,
+					abi: [abiItem as AbiFunction],
+				});
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									functionName: decoded.functionName,
+									args: decoded.args,
+									data,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'encode_calldata',
+		{
+			description: 'Encode function arguments for transactions',
+			inputSchema: {
+				abi: z
+					.string()
+					.describe(
+						'Function ABI (e.g., "function transfer(address to, uint256 amount)")',
+					),
+				args: z
+					.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
+					.describe('Arguments to pass to the function'),
+			},
+		},
+		async ({abi, args}, _extra): Promise<CallToolResult> => {
+			try {
+				const abiItem = parseAbiItem(abi);
+				if (abiItem.type !== 'function') {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: stringifyWithBigInt(
+									{error: 'Provided ABI is not a function'},
+									2,
+								),
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const encoded = encodeFunctionData({
+					abi: [abiItem as AbiFunction],
+					args,
+				});
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									functionName: (abiItem as AbiFunction).name,
+									args,
+									encodedData: encoded,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_chain_id',
+		{
+			description: 'Get current chain ID',
+			inputSchema: {},
+		},
+		async (_params, _extra): Promise<CallToolResult> => {
+			try {
+				const chainId = await publicClient.getChainId();
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									chainId,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_code',
+		{
+			description: 'Get bytecode at an address (useful for checking if an address is a contract)',
+			inputSchema: {
+				address: z.string().describe('Address to get code from'),
+				blockTag: z
+					.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+					.optional()
+					.describe('Block tag to query (default: "latest")'),
+			},
+		},
+		async ({address, blockTag}, _extra): Promise<CallToolResult> => {
+			try {
+				const code = await publicClient.getCode({
+					address: address as `0x${string}`,
+					blockTag: blockTag as any,
+				});
+	
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									address,
+									blockTag,
+									isContract: code && code !== '0x',
+									codeLength: code ? code.length : 0,
+									code: code && code !== '0x' ? code : undefined,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	// Phase 4: Nice-to-Have Features
+
+	server.registerTool(
+		'get_fee_history',
+		{
+			description: 'Get historical gas fee data for EIP-1559 pricing',
+			inputSchema: {
+				blockCount: z.number().describe('Number of blocks to fetch fee history for'),
+				newestBlock: z.union([z.number(), z.literal('pending'), z.literal('latest')]).describe('Newest block number or "latest" or "pending"'),
+				rewardPercentiles: z
+					.array(z.number())
+					.default([25, 50, 75])
+					.describe('Array of percentiles to return reward data (e.g., [25, 50, 75])'),
+			},
+		},
+		async ({blockCount, newestBlock, rewardPercentiles}, _extra): Promise<CallToolResult> => {
+			try {
+				const feeHistory = await publicClient.getFeeHistory({
+					blockCount: blockCount as any,
+					blockNumber: newestBlock as any,
+					rewardPercentiles,
+				});
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									oldestBlock: feeHistory.oldestBlock?.toString(),
+									baseFeePerGas: feeHistory.baseFeePerGas.map((fee) => fee.toString()),
+									gasUsedRatio: feeHistory.gasUsedRatio,
+									reward: feeHistory.reward?.map((rewards) => rewards.map((r) => r.toString())),
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'sign_message',
+		{
+			description: 'Sign a message using the wallet (personal_sign)',
+			inputSchema: {
+				message: z.string().describe('Message to sign'),
+			},
+		},
+		async ({message}, _extra): Promise<CallToolResult> => {
+			try {
+				if (!walletClient) {
+					return {
+						content: [
+							{
+								type: 'text',
+								text: stringifyWithBigInt(
+									{
+										error: 'privateKey not provided. Cannot sign messages without a private key.',
+									},
+									2,
+								),
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const signature = await walletClient.signMessage({
+					message,
+				});
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									message,
+									signature,
+									address: walletClient.account.address,
+								},
+								2,
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									error: error instanceof Error ? error.message : String(error),
+								},
+								2,
+							),
+						},
+					],
+					isError: true,
+				};
+			}
+		},
+	);
+
+	server.registerTool(
+		'get_storage_at',
+		{
+			description: 'Get contract storage value at a specific slot',
+			inputSchema: {
+				address: z.string().describe('Contract address'),
+				slot: z.union([z.string(), z.number()]).describe('Storage slot (hex string or number)'),
+				blockTag: z
+					.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+					.optional()
+					.describe('Block tag to query (default: "latest")'),
+			},
+		},
+		async ({address, slot, blockTag}, _extra): Promise<CallToolResult> => {
+			try {
+				const storage = await publicClient.getStorageAt({
+					address: address as `0x${string}`,
+					slot: typeof slot === 'string' ? (slot as `0x${string}`) : `0x${BigInt(slot).toString(16)}`,
+					blockTag: blockTag as any,
+				});
+	
+				return {
+					content: [
+						{
+							type: 'text',
+							text: stringifyWithBigInt(
+								{
+									address,
+									slot: typeof slot === 'string' ? slot : slot.toString(),
+									blockTag,
+									storage: storage || '0x',
+									storageAsNumber: storage && storage !== '0x' ? BigInt(storage).toString() : '0',
+								},
+								2,
+							),
 						},
 					],
 				};

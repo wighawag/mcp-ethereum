@@ -33,7 +33,7 @@ export function createServer(
 	);
 
 	server.registerTool(
-		'wait-for-transaction-confirmation',
+		'wait_for_transaction_confirmation',
 		{
 			description: 'Wait For Transaction Confirmation',
 			inputSchema: {
@@ -144,7 +144,7 @@ export function createServer(
 	);
 
 	server.registerTool(
-		'send-transaction',
+		'send_transaction',
 		{
 			description: 'Send a transaction, optionally calling a contract function with ABI',
 			inputSchema: {
@@ -241,7 +241,7 @@ export function createServer(
 	);
 
 	server.registerTool(
-		'get-contract-logs',
+		'get_contract_logs',
 		{
 			description: 'Fetch logs for a contract, optionally decoding them using event ABI',
 			inputSchema: {
@@ -366,7 +366,7 @@ export function createServer(
 	);
 
 	server.registerTool(
-		'get-transaction-logs',
+		'get_transaction_logs',
 		{
 			description: 'Get the events/logs of a transaction, optionally decoding them using event ABI',
 			inputSchema: {
@@ -493,7 +493,7 @@ export function createServer(
 	);
 
 	server.registerTool(
-		'get-latest-block',
+		'get_latest_block',
 		{
 			description: 'Get the latest block information',
 			inputSchema: {},

@@ -35,7 +35,8 @@ export function createServer(
 	server.registerTool(
 		'wait_for_transaction_confirmation',
 		{
-			description: 'Wait For Transaction Confirmation',
+			description:
+				'Wait For Transaction Confirmation. Returns status: "confirmed" or "reverted" with revertReason for failed transactions',
 			inputSchema: {
 				txHash: z
 					.string()
@@ -84,27 +85,75 @@ export function createServer(
 						const confirmations = Number(currentBlockNumber - txBlockNumber);
 
 						if (confirmations >= expectedConformations) {
-							await sendStatus(
-								`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
-							);
+							// Check if transaction was successful
+							if (receipt.status === 'success') {
+								await sendStatus(
+									`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
+								);
 
-							return {
-								content: [
-									{
-										type: 'text',
-										text: stringifyWithBigInt(
-											{
-												status: 'confirmed',
-												txHash,
+								return {
+									content: [
+										{
+											type: 'text',
+											text: stringifyWithBigInt(
+												{
+													status: 'confirmed',
+													txHash,
+													blockNumber: receipt.blockNumber,
+													confirmations,
+													receipt,
+												},
+												2,
+											),
+										},
+									],
+								};
+							} else {
+								// Transaction reverted - try to get revert reason
+								let revertReason = 'Unknown';
+								try {
+									const tx = await publicClient.getTransaction({
+										hash: txHash as `0x${string}`,
+									});
+									if (tx) {
+										try {
+											await publicClient.call({
+												account: tx.from,
+												to: tx.to,
+												data: tx.input,
+												value: tx.value,
 												blockNumber: receipt.blockNumber,
-												confirmations,
-												receipt,
-											},
-											2,
-										),
-									},
-								],
-							};
+											});
+										} catch (callError) {
+											revertReason =
+												callError instanceof Error ? callError.message : String(callError);
+										}
+									}
+								} catch (error) {
+									// Ignore error getting transaction details
+								}
+
+								await sendStatus(`Transaction ${txHash} reverted: ${revertReason}`);
+
+								return {
+									content: [
+										{
+											type: 'text',
+											text: stringifyWithBigInt(
+												{
+													status: 'reverted',
+													txHash,
+													blockNumber: receipt.blockNumber,
+													confirmations,
+													revertReason,
+													receipt,
+												},
+												2,
+											),
+										},
+									],
+								};
+							}
 						}
 
 						await sendStatus(

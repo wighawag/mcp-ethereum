@@ -451,10 +451,9 @@ describe('MCP Ethereum Server Tests', () => {
 					arguments: {
 						to: TEST_CONTRACT_ADDRESS,
 						abi: ERC20_TRANSFER_ABI,
-						args: [TEST_RECIPIENT, 100],
+						args: [TEST_RECIPIENT, '10'],
 					},
 				});
-				console.log(result);
 				expect(result.content[0].type).toBe('text');
 				const data = JSON.parse(result.content[0].text);
 				expect(data.gasEstimate).toBeDefined();

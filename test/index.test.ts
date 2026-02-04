@@ -6,7 +6,6 @@ import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {getChain} from '../src/helpers.js';
 import {Server} from 'prool';
 import {Instance} from 'prool';
-import {CallToolRequest} from '@modelcontextprotocol/sdk/types.js';
 import {callToolWithTextResponse} from './utils/index.js';
 
 // Test addresses

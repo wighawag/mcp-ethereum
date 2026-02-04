@@ -1,0 +1,14 @@
+{
+  "id": "dc372fa8-3577-437d-8b52-6176ba9ac838",
+  "status": "running",
+  "startedAt": "2026-02-04T18:16:55.292Z",
+  "updatedAt": "2026-02-04T18:16:55.292Z",
+  "agentPlugin": "opencode",
+  "trackerPlugin": "beads-bv",
+  "epicId": "mcp-ethereum-sin",
+  "currentIteration": 0,
+  "maxIterations": 10,
+  "totalTasks": 0,
+  "tasksCompleted": 0,
+  "cwd": "/home/wighawag/dev/github/wighawag/mcp-ethereum"
+}

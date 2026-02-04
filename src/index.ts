@@ -36,7 +36,7 @@ export function createServer(
 		'wait_for_transaction_confirmation',
 		{
 			description:
-				'Wait For Transaction Confirmation. Returns status: "confirmed" or "reverted" with revertReason for failed transactions',
+				'Wait For Transaction Confirmation. Returns status: "confirmed", "reverted", or "replaced" with revertReason for failed transactions and replacedBy for replaced transactions',
 			inputSchema: {
 				txHash: z
 					.string()
@@ -153,9 +153,7 @@ export function createServer(
 												callError instanceof Error ? callError.message : String(callError);
 										}
 									}
-								} catch (error) {
-									// Ignore error getting transaction details
-								}
+								} catch (error) {}
 
 								await sendProgress(confirmations);
 								await sendStatus(`Transaction ${txHash} reverted: ${revertReason}`);
@@ -189,6 +187,47 @@ export function createServer(
 							`Transaction ${txHash} included in block ${txBlockNumber}. Waiting for ${expectedConformations - confirmations} more confirmations...`,
 						);
 					} else {
+						// Transaction not found - check if it was replaced
+						const tx = await publicClient.getTransaction({
+							hash: txHash as `0x${string}`,
+						});
+						if (tx) {
+							try {
+								const fromAddress = tx.from;
+								const nonce = tx.nonce;
+								const block = await publicClient.getBlock({includeTransactions: true});
+
+								const replacementTx = block.transactions.find(
+									(blockTx: any) =>
+										blockTx.from.toLowerCase() === fromAddress.toLowerCase() &&
+										blockTx.nonce === nonce &&
+										blockTx.hash.toLowerCase() !== txHash.toLowerCase(),
+								);
+
+								if (replacementTx) {
+									await sendStatus(`Transaction ${txHash} was replaced by ${replacementTx.hash}`);
+
+									return {
+										content: [
+											{
+												type: 'text',
+												text: stringifyWithBigInt(
+													{
+														status: 'replaced',
+														txHash,
+														replacedBy: replacementTx.hash,
+														replacementTx,
+														reason:
+															'Transaction was replaced by another transaction with the same nonce',
+													},
+													2,
+												),
+											},
+										],
+									};
+								}
+							} catch (error) {}
+						}
 						await sendStatus(
 							`Transaction ${txHash} not yet mined. Checking again in ${interval} seconds...`,
 						);

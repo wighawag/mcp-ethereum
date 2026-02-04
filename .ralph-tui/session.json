@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "sessionId": "dc372fa8-3577-437d-8b52-6176ba9ac838",
+  "status": "running",
+  "startedAt": "2026-02-04T18:16:56.132Z",
+  "updatedAt": "2026-02-04T18:22:37.742Z",
+  "currentIteration": 0,
+  "maxIterations": 10,
+  "tasksCompleted": 0,
+  "isPaused": false,
+  "agentPlugin": "opencode",
+  "trackerState": {
+    "plugin": "beads-bv",
+    "epicId": "mcp-ethereum-sin",
+    "totalTasks": 4,
+    "tasks": [
+      {
+        "id": "mcp-ethereum-sin.1",
+        "title": "US-001: Add replaced transaction detection",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "mcp-ethereum-sin.2",
+        "title": "US-002: Add reverted status detection",
+        "status": "completed",
+        "completedInSession": false
+      },
+      {
+        "id": "mcp-ethereum-sin.3",
+        "title": "US-003: Add block timestamp to response",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "mcp-ethereum-sin.4",
+        "title": "US-004: Add progress percentage display",
+        "status": "completed",
+        "completedInSession": false
+      }
+    ]
+  },
+  "iterations": [],
+  "skippedTaskIds": [],
+  "cwd": "/home/wighawag/dev/github/wighawag/mcp-ethereum",
+  "activeTaskIds": [],
+  "subagentPanelVisible": false
+}

@@ -55,6 +55,7 @@ export function createServer(
 			const intervalMs = interval * 1000;
 			const timeoutMs = timeout * 1000;
 			const startTime = Date.now();
+			let lastMilestonePercentage = 0;
 
 			const sendStatus = async (message: string) => {
 				try {
@@ -67,6 +68,28 @@ export function createServer(
 					);
 				} catch (error) {
 					console.error('Error sending notification:', error);
+				}
+			};
+
+			const shouldSendProgress = (confirmations: number): boolean => {
+				if (expectedConformations <= 1) return false;
+				const percentage = Math.floor((confirmations / expectedConformations) * 100);
+				const milestones = [25, 50, 75, 100];
+				return milestones.some(
+					(milestone) => percentage >= milestone && lastMilestonePercentage < milestone,
+				);
+			};
+
+			const sendProgress = async (confirmations: number) => {
+				const percentage = Math.floor((confirmations / expectedConformations) * 100);
+				const milestones = [25, 50, 75, 100];
+				for (const milestone of milestones) {
+					if (percentage >= milestone && lastMilestonePercentage < milestone) {
+						await sendStatus(
+							`Transaction ${txHash} confirmation progress: ${milestone}% (${confirmations}/${expectedConformations} confirmations)`,
+						);
+						lastMilestonePercentage = milestone;
+					}
 				}
 			};
 
@@ -87,6 +110,7 @@ export function createServer(
 						if (confirmations >= expectedConformations) {
 							// Check if transaction was successful
 							if (receipt.status === 'success') {
+								await sendProgress(confirmations);
 								await sendStatus(
 									`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
 								);
@@ -133,6 +157,7 @@ export function createServer(
 									// Ignore error getting transaction details
 								}
 
+								await sendProgress(confirmations);
 								await sendStatus(`Transaction ${txHash} reverted: ${revertReason}`);
 
 								return {
@@ -154,6 +179,10 @@ export function createServer(
 									],
 								};
 							}
+						}
+
+						if (shouldSendProgress(confirmations)) {
+							await sendProgress(confirmations);
 						}
 
 						await sendStatus(

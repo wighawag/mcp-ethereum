@@ -832,17 +832,24 @@ export function createServer(
 		},
 		async ({blockNumber, blockHash, includeTransactions}, _extra): Promise<CallToolResult> => {
 			try {
-				let blockParams: any = {
-					includeTransactions: includeTransactions || false,
-				};
-
+				let block;
 				if (blockHash) {
-					blockParams.blockHash = blockHash as `0x${string}`;
+					block = await publicClient.getBlock({
+						blockHash: blockHash as `0x${string}`,
+						includeTransactions: includeTransactions || false,
+					});
+				} else if (blockNumber !== undefined && typeof blockNumber === 'number') {
+					block = await publicClient.getBlock({
+						blockNumber: BigInt(blockNumber),
+						includeTransactions: includeTransactions || false,
+					});
 				} else {
-					blockParams.blockNumber = blockNumber !== undefined ? blockNumber : 'latest';
+					// blockNumber is 'latest', 'pending', 'finalized', 'safe', or undefined
+					block = await publicClient.getBlock({
+						blockNumber: blockNumber as any,
+						includeTransactions: includeTransactions || false,
+					});
 				}
-
-				const block = await publicClient.getBlock(blockParams);
 
 				const transactionCount = includeTransactions
 					? block.transactions.length

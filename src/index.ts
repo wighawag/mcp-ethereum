@@ -35,7 +35,8 @@ export function createServer(
 	server.registerTool(
 		'wait_for_transaction_confirmation',
 		{
-			description: 'Wait For Transaction Confirmation',
+			description:
+				'Wait for transaction confirmation and monitor for replacements. Returns confirmation details including block number, confirmations, and transaction receipt. If the transaction is replaced by another transaction with the same nonce, the replacedBy field will contain the new transaction hash.',
 			inputSchema: {
 				txHash: z
 					.string()
@@ -69,10 +70,37 @@ export function createServer(
 				}
 			};
 
+			let originalTxNonce: number | undefined;
+			let trackedReplacement: `0x${string}` | undefined;
+
 			while (Date.now() - startTime < timeoutMs) {
 				try {
-					// Get current block number
 					const currentBlockNumber = await publicClient.getBlockNumber();
+
+					// Check if transaction was replaced by another with same nonce
+					if (originalTxNonce !== undefined) {
+						try {
+							const tx = await publicClient.getTransaction({hash: txHash as `0x${string}`});
+							if (tx && tx.blockNumber !== null) {
+								const block = await publicClient.getBlock({blockNumber: tx.blockNumber});
+								const txsInBlock = block.transactions;
+								if (typeof txsInBlock[0] !== 'string') {
+									for (const pendingTx of txsInBlock as any) {
+										if (
+											typeof pendingTx === 'object' &&
+											pendingTx.hash !== txHash &&
+											pendingTx.nonce === originalTxNonce
+										) {
+											trackedReplacement = pendingTx.hash;
+											await sendStatus(`Transaction ${txHash} was replaced by ${pendingTx.hash}`);
+										}
+									}
+								}
+							}
+						} catch (error) {
+							// Transaction might not exist yet, continue polling
+						}
+					}
 
 					// Get transaction receipt
 					const receipt = await publicClient.getTransactionReceipt({
@@ -80,37 +108,61 @@ export function createServer(
 					});
 
 					if (receipt) {
+						// Store the nonce of the original transaction for replacement detection
+						if (originalTxNonce === undefined) {
+							const tx = await publicClient.getTransaction({hash: txHash as `0x${string}`});
+							if (tx) {
+								originalTxNonce = tx.nonce;
+							}
+						}
+
 						const txBlockNumber = receipt.blockNumber;
-						const confirmations = Number(currentBlockNumber - txBlockNumber);
+						const confirmations = currentBlockNumber - txBlockNumber;
+						const confirmationsNumber = Number(confirmations);
 
 						if (confirmations >= expectedConformations) {
 							await sendStatus(
-								`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
+								`Transaction ${txHash} confirmed with ${confirmationsNumber} confirmations`,
 							);
+
+							const responseData: any = {
+								status: 'confirmed',
+								txHash,
+								blockNumber: receipt.blockNumber,
+								confirmations: confirmationsNumber,
+								receipt,
+							};
+
+							if (trackedReplacement) {
+								responseData.replacedBy = trackedReplacement;
+							}
 
 							return {
 								content: [
 									{
 										type: 'text',
-										text: stringifyWithBigInt(
-											{
-												status: 'confirmed',
-												txHash,
-												blockNumber: receipt.blockNumber,
-												confirmations,
-												receipt,
-											},
-											2,
-										),
+										text: stringifyWithBigInt(responseData, 2),
 									},
 								],
 							};
 						}
 
 						await sendStatus(
-							`Transaction ${txHash} included in block ${txBlockNumber}. Waiting for ${expectedConformations - confirmations} more confirmations...`,
+							`Transaction ${txHash} included in block ${txBlockNumber}. Waiting for ${expectedConformations - confirmationsNumber} more confirmations...`,
 						);
 					} else {
+						// If receipt doesn't exist yet, try to get the transaction to store nonce
+						if (originalTxNonce === undefined) {
+							try {
+								const tx = await publicClient.getTransaction({hash: txHash as `0x${string}`});
+								if (tx) {
+									originalTxNonce = tx.nonce;
+								}
+							} catch (error) {
+								// Transaction might not be visible yet
+							}
+						}
+
 						await sendStatus(
 							`Transaction ${txHash} not yet mined. Checking again in ${interval} seconds...`,
 						);
@@ -121,22 +173,24 @@ export function createServer(
 					);
 				}
 
-				// Wait for the specified interval
 				await sleep(intervalMs);
+			}
+
+			const timeoutData: any = {
+				status: 'timeout',
+				txHash,
+				message: `Timeout reached after ${timeout} seconds`,
+			};
+
+			if (trackedReplacement) {
+				timeoutData.replacedBy = trackedReplacement;
 			}
 
 			return {
 				content: [
 					{
 						type: 'text',
-						text: stringifyWithBigInt(
-							{
-								status: 'timeout',
-								txHash,
-								message: `Timeout reached after ${timeout} seconds`,
-							},
-							2,
-						),
+						text: stringifyWithBigInt(timeoutData, 2),
 					},
 				],
 			};

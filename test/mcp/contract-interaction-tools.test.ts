@@ -98,7 +98,7 @@ describe('Contract Interaction Tools', () => {
 			});
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
-			expect(data.gasEstimate).toBeDefined();
+			expect(data.gasUsed).toBeDefined();
 			expect(data.gasEstimateInGwei).toBeDefined();
 		});
 
@@ -114,7 +114,7 @@ describe('Contract Interaction Tools', () => {
 			});
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
-			expect(data.gasEstimate).toBeDefined();
+			expect(data.gasUsed).toBeDefined();
 		});
 
 		it('should estimate gas with value', async () => {
@@ -128,7 +128,7 @@ describe('Contract Interaction Tools', () => {
 			});
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
-			expect(data.gasEstimate).toBeDefined();
+			expect(data.gasUsed).toBeDefined();
 		});
 	});
 
@@ -145,8 +145,8 @@ describe('Contract Interaction Tools', () => {
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
 			expect(data.functionName).toBe('transfer');
-			expect(data.encodedData).toBeDefined();
-			expect(data.encodedData).toMatch(/^0x[a-fA-F0-9]+$/);
+			expect(data.calldata).toBeDefined();
+			expect(data.calldata).toMatch(/^0x[a-fA-F0-9]+$/);
 		});
 
 		it('should return error for non-function ABI', async () => {
@@ -176,13 +176,13 @@ describe('Contract Interaction Tools', () => {
 					args: [TEST_RECIPIENT, 100],
 				},
 			});
-			const encodedData = JSON.parse(encodeResult.content[0].text).encodedData;
+			const encodedCalldata = JSON.parse(encodeResult.content[0].text).calldata;
 
 			// Then decode it
 			const result = await callToolWithTextResponse(client, {
 				name: 'decode_calldata',
 				arguments: {
-					data: encodedData,
+					calldata: encodedCalldata,
 					abi: ERC20_TRANSFER_ABI,
 				},
 			});
@@ -200,7 +200,7 @@ describe('Contract Interaction Tools', () => {
 			const result = await callToolWithTextResponse(client, {
 				name: 'decode_calldata',
 				arguments: {
-					data: '0x1234',
+					calldata: '0x1234',
 					abi: TRANSFER_EVENT_ABI,
 				},
 			});

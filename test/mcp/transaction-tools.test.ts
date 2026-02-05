@@ -37,7 +37,7 @@ describe('Transaction Tools', () => {
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
 			expect(data.status).toBe('sent');
-			expect(data.txHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
+			expect(data.transactionHash).toMatch(/^0x[a-fA-F0-9]{64}$/);
 		});
 
 		it('should send contract call transaction', async () => {
@@ -53,7 +53,7 @@ describe('Transaction Tools', () => {
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
 			expect(data.status).toBe('sent');
-			expect(data.txHash).toBeDefined();
+			expect(data.transactionHash).toBeDefined();
 		});
 
 		it('should send transaction with gas parameters', async () => {
@@ -70,7 +70,7 @@ describe('Transaction Tools', () => {
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
 			expect(data.status).toBe('sent');
-			expect(data.txHash).toBeDefined();
+			expect(data.transactionHash).toBeDefined();
 		});
 
 		it('should send transaction with gas limit', async () => {
@@ -86,7 +86,7 @@ describe('Transaction Tools', () => {
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
 			expect(data.status).toBe('sent');
-			expect(data.txHash).toBeDefined();
+			expect(data.transactionHash).toBeDefined();
 		});
 
 		it('should send transaction with nonce', async () => {
@@ -111,7 +111,7 @@ describe('Transaction Tools', () => {
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
 			expect(data.status).toBe('sent');
-			expect(data.txHash).toBeDefined();
+			expect(data.transactionHash).toBeDefined();
 		});
 
 		it('should return error when sending transaction without private key', async () => {
@@ -161,7 +161,7 @@ describe('Transaction Tools', () => {
 					value: '1000000000000000',
 				},
 			});
-			const txHash = JSON.parse(sendResult.content[0].text).txHash;
+			const txHash = JSON.parse(sendResult.content[0].text).transactionHash;
 
 			// Wait a moment for the transaction to be mined
 			await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -206,22 +206,22 @@ describe('Transaction Tools', () => {
 					value: '1000000000000000',
 				},
 			});
-			const txHash = JSON.parse(sendResult.content[0].text).txHash;
+			const txHash = JSON.parse(sendResult.content[0].text).transactionHash;
 
 			// Wait for confirmation
 			const result = await callToolWithTextResponse(client, {
 				name: 'wait_for_transaction_confirmation',
 				arguments: {
-					txHash,
-					expectedConformations: 1,
-					interval: 0.1,
-					timeout: 5,
+					hash: txHash,
+					confirmations: 1,
+					interval: 1,
+					timeout: 5000,
 				},
 			});
 			expect(result.content[0].type).toBe('text');
 			const data = JSON.parse(result.content[0].text);
 			expect(['confirmed', 'timeout']).toContain(data.status);
-			expect(data.txHash).toBe(txHash);
+			expect(data.transactionHash).toBe(txHash);
 		}, 15000);
 
 		it('should handle timeout', async () => {
@@ -229,16 +229,16 @@ describe('Transaction Tools', () => {
 			const result = await callToolWithTextResponse(client, {
 				name: 'wait_for_transaction_confirmation',
 				arguments: {
-					txHash: '0x0000000000000000000000000000000000000000000000000000000000000001',
-					expectedConformations: 1,
-					interval: 0.1,
-					timeout: 1,
+					hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+					confirmations: 1,
+					interval: 1,
+					timeout: 1000,
 				},
 			});
 			expect(result.content[0].type).toBe('text');
+			expect(result.isError).toBe(true);
 			const data = JSON.parse(result.content[0].text);
-			expect(data.status).toBe('timeout');
-			expect(data.message).toContain('Timeout reached');
+			expect(data.error).toContain('Timeout reached');
 		}, 5000);
 
 		it('should handle reverted transaction', async () => {
@@ -255,7 +255,7 @@ describe('Transaction Tools', () => {
 					gas: '100000', // Provide gas to skip simulation
 				},
 			});
-			const txHash = JSON.parse(sendResult.content[0].text).txHash;
+			const txHash = JSON.parse(sendResult.content[0].text).transactionHash;
 
 			// Wait a moment for the transaction to be mined
 			await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -264,10 +264,10 @@ describe('Transaction Tools', () => {
 			const result = await callToolWithTextResponse(client, {
 				name: 'wait_for_transaction_confirmation',
 				arguments: {
-					txHash,
-					expectedConformations: 1,
-					interval: 0.1,
-					timeout: 5,
+					hash: txHash,
+					confirmations: 1,
+					interval: 1,
+					timeout: 5000,
 				},
 			});
 			expect(result.content[0].type).toBe('text');
@@ -278,7 +278,7 @@ describe('Transaction Tools', () => {
 
 			// If reverted, verify the response contains revert information
 			if (data.status === 'reverted') {
-				expect(data.txHash).toBe(txHash);
+				expect(data.transactionHash).toBe(txHash);
 				expect(data.receipt).toBeDefined();
 			}
 		}, 15000);

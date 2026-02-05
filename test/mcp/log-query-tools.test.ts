@@ -149,7 +149,7 @@ describe('Log Query Tools', () => {
 					args: [TEST_RECIPIENT, 100],
 				},
 			});
-			const txHash = JSON.parse(sendResult.content[0].text).txHash;
+			const txHash = JSON.parse(sendResult.content[0].text).transactionHash;
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			// Get the logs
@@ -177,7 +177,7 @@ describe('Log Query Tools', () => {
 					args: [TEST_RECIPIENT, 100],
 				},
 			});
-			const txHash = JSON.parse(sendResult.content[0].text).txHash;
+			const txHash = JSON.parse(sendResult.content[0].text).transactionHash;
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			// Get the logs with decoding

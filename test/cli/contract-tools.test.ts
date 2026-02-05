@@ -111,7 +111,7 @@ describe('CLI - Contract Tools', () => {
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
 			expect(result.gasUsed).toBeDefined();
-			expect(result.gasUsed).toBeGreaterThanOrEqual(0);
+			expect(Number(result.gasUsed)).toBeGreaterThanOrEqual(0);
 		});
 
 		it('should estimate gas with value parameter', async () => {

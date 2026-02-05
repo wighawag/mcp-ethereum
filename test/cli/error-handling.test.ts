@@ -165,11 +165,11 @@ describe('CLI - Error Handling', () => {
 			const invalidCalldata = 'not-valid-calldata';
 	
 			const {stderr, exitCode} = await invokeCliCommand(
-				['decode_calldata', '--data', invalidCalldata, '--abi', 'function transfer(address,uint256)', '--rpc-url', 'http://localhost:8545']
+				['decode_calldata', '--calldata', invalidCalldata, '--abi', 'function transfer(address,uint256)', '--rpc-url', 'http://localhost:8545']
 			);
 	
 			expect(exitCode).toBe(1);
-			expect(stderr).toContain('Error');
+			expect(stderr.toLowerCase()).toContain('error');
 		});
 
 		it('should show validation error for invalid slot format', async () => {

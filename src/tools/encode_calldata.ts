@@ -11,7 +11,8 @@ export const encode_calldata = createTool({
 			.describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
 		args: z
 			.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
-			.describe('Arguments to pass to the function'),
+			.optional()
+			.describe('Optional arguments to pass to the function'),
 	}),
 	execute: async (env, {abi, args}) => {
 		const abiItem = parseAbiItem(abi);
@@ -24,15 +25,15 @@ export const encode_calldata = createTool({
 
 		const encoded = encodeFunctionData({
 			abi: [abiItem as AbiFunction],
-			args,
+			args: args || [],
 		});
 
 		return {
 			success: true,
 			result: {
 				functionName: (abiItem as AbiFunction).name,
-				args,
-				encodedData: encoded,
+				args: args || [],
+				calldata: encoded,
 			},
 		};
 	},

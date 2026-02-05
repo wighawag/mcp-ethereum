@@ -1,6 +1,6 @@
 import {Command} from 'commander';
 import {z} from 'zod';
-import type {Tool} from './types.js';
+import type {Tool, ToolSchema} from './types.js';
 import {getChain} from './helpers.js';
 import {getClients} from './helpers.js';
 import type {ToolEnvironment} from './types.js';
@@ -9,12 +9,11 @@ import type {ToolEnvironment} from './types.js';
  * Convert Zod schema field to commander.js option definition
  */
 function zodFieldToOption(name: string, field: z.ZodTypeAny): string {
-	// Handle boolean flags
+	// Handle boolean flags - no value required
 	if (field instanceof z.ZodBoolean) {
 		return `--${name}`;
 	}
-
-	// Handle all other types (string, number, union, etc.) - use string option
+	// All other types use <value> to accept explicit values
 	return `--${name} <value>`;
 }
 
@@ -34,9 +33,17 @@ function unionContainsNumber(field: z.ZodUnion<any>): boolean {
  * Parse option value based on Zod type
  */
 function parseOptionValue(field: z.ZodTypeAny, value: any): any {
-	// Handle array types - parse comma-separated values
+	// Handle array types - parse comma-separated values or JSON arrays
 	if (field instanceof z.ZodArray) {
 		if (typeof value === 'string') {
+			// Check if it's a JSON array
+			if (value.trim().startsWith('[')) {
+				try {
+					return JSON.parse(value);
+				} catch {
+					// Fall through to comma-separated parsing
+				}
+			}
 			// Check if array element type is number
 			const elementType = field.element;
 			const items = value.split(',').map((v) => v.trim());
@@ -53,9 +60,12 @@ function parseOptionValue(field: z.ZodTypeAny, value: any): any {
 		return Number(value);
 	}
 
-	// Handle boolean types
+	// Handle boolean types - support string "true"/"false"
 	if (field instanceof z.ZodBoolean) {
-		return value === true || value === 'true';
+		if (typeof value === 'string') {
+			return value.toLowerCase() === 'true';
+		}
+		return value === true;
 	}
 
 	// Handle union types - try to convert to number if the union includes a number type
@@ -91,6 +101,88 @@ function isOptionalField(field: z.ZodTypeAny): boolean {
 }
 
 /**
+ * Unwrap Zod wrappers (Optional, Default) to get the inner type
+ */
+function unwrapZodType(field: z.ZodTypeAny): z.ZodTypeAny {
+	if (field instanceof z.ZodOptional) {
+		return unwrapZodType(field.unwrap());
+	}
+	if (field instanceof z.ZodDefault) {
+		return unwrapZodType(field._def.innerType);
+	}
+	return field;
+}
+
+/**
+ * Check if schema is a ZodUnion of ZodObjects
+ */
+function isSchemaUnion(schema: ToolSchema): schema is z.ZodUnion<readonly [z.ZodObject<any>, ...z.ZodObject<any>[]]> {
+	return schema instanceof z.ZodUnion;
+}
+
+/**
+ * Extract all unique fields from a schema (handles both ZodObject and ZodUnion)
+ * For unions, collects all fields from all options
+ * Returns a map of fieldName -> {field, isOptional}
+ */
+function extractSchemaFields(schema: ToolSchema): Map<string, {field: z.ZodTypeAny; isOptional: boolean}> {
+	const fields = new Map<string, {field: z.ZodTypeAny; isOptional: boolean}>();
+
+	if (isSchemaUnion(schema)) {
+		// For unions, collect all fields from all options
+		// A field is required only if it's required in ALL options
+		const allOptions = schema.options as readonly z.ZodObject<any>[];
+		
+		// First pass: collect all unique field names
+		const allFieldNames = new Set<string>();
+		for (const option of allOptions) {
+			for (const fieldName of Object.keys(option.shape)) {
+				allFieldNames.add(fieldName);
+			}
+		}
+
+		// Second pass: for each field, determine if it's optional
+		// A field is required only if it exists and is required in ALL options
+		for (const fieldName of allFieldNames) {
+			let field: z.ZodTypeAny | undefined;
+			let isOptionalInAnyOption = false;
+			let missingInSomeOption = false;
+
+			for (const option of allOptions) {
+				const optionField = option.shape[fieldName] as z.ZodTypeAny | undefined;
+				if (optionField === undefined) {
+					missingInSomeOption = true;
+				} else {
+					field = optionField;
+					if (isOptionalField(optionField)) {
+						isOptionalInAnyOption = true;
+					}
+				}
+			}
+
+			if (field) {
+				// Field is optional in CLI if it's optional in any option OR missing in some option
+				fields.set(fieldName, {
+					field,
+					isOptional: isOptionalInAnyOption || missingInSomeOption,
+				});
+			}
+		}
+	} else {
+		// Simple ZodObject - extract fields directly
+		const shape = schema.shape;
+		for (const [fieldName, field] of Object.entries(shape)) {
+			fields.set(fieldName, {
+				field: field as z.ZodTypeAny,
+				isOptional: isOptionalField(field as z.ZodTypeAny),
+			});
+		}
+	}
+
+	return fields;
+}
+
+/**
  * Create a CLI tool environment for executing tools
  */
 async function createCliToolEnvironment(
@@ -107,7 +199,7 @@ async function createCliToolEnvironment(
 		publicClient,
 		walletClient,
 		sendStatus: async (msg: string) => {
-			console.log(`[Status] ${msg}`);
+			console.error(`[Status] ${msg}`);
 		},
 	};
 }
@@ -116,7 +208,7 @@ async function createCliToolEnvironment(
  * Parse and validate parameters against Zod schema
  */
 async function parseAndValidateParams(
-	schema: z.ZodObject<any>,
+	schema: ToolSchema,
 	options: Record<string, any>,
 ): Promise<any> {
 	try {
@@ -168,25 +260,23 @@ function formatToolResult(result: {
 export function generateToolCommand(
 	program: Command,
 	toolName: string,
-	tool: Tool<z.ZodObject<any>>,
+	tool: Tool<ToolSchema>,
 ): void {
-	// Get the schema shape
-	const shape = tool.schema.shape;
+	// Extract fields from schema (handles both ZodObject and ZodUnion)
+	const schemaFields = extractSchemaFields(tool.schema);
 
 	// Create the command
 	const cmd = program.command(toolName).description(tool.description);
 
 	// Add options for each schema field
-	for (const [fieldName, field] of Object.entries(shape)) {
-		// Unwrap optional fields
-		const actualField = isOptionalField(field as z.ZodTypeAny)
-			? (field as z.ZodOptional<any>).unwrap()
-			: field;
+	for (const [fieldName, {field, isOptional}] of schemaFields) {
+		// Unwrap optional/default wrappers to get the actual type
+		const actualField = unwrapZodType(field);
 		const optionDef = zodFieldToOption(fieldName, actualField);
 		const description = getFieldDescription(actualField);
 
 		// Add the option
-		if (isOptionalField(field as z.ZodTypeAny)) {
+		if (isOptional) {
 			cmd.option(optionDef, description);
 		} else {
 			cmd.requiredOption(optionDef, description);
@@ -225,10 +315,9 @@ export function generateToolCommand(
 			// Parse and validate parameters against schema
 			const params: Record<string, any> = {};
 
-			for (const [fieldName, field] of Object.entries(shape)) {
-				const actualField = isOptionalField(field as z.ZodTypeAny)
-					? (field as z.ZodOptional<any>).unwrap()
-					: field;
+			for (const [fieldName, {field}] of schemaFields) {
+				// Unwrap optional/default wrappers to get the actual type for parsing
+				const actualField = unwrapZodType(field);
 				const value = options[fieldName];
 
 				if (value !== undefined) {
@@ -264,7 +353,7 @@ export function generateToolCommand(
 /**
  * Register all tool commands from a tools object
  */
-export function registerAllToolCommands(program: Command, tools: Record<string, Tool>): void {
+export function registerAllToolCommands(program: Command, tools: Record<string, Tool<ToolSchema>>): void {
 	for (const [toolName, tool] of Object.entries(tools)) {
 		generateToolCommand(program, toolName, tool);
 	}

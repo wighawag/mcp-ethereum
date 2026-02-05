@@ -6,12 +6,26 @@ import type {AbiFunction} from 'viem';
 export const decode_calldata = createTool({
 	description: 'Decode transaction calldata using function ABI',
 	schema: z.object({
-		data: z.string().describe('Transaction calldata to decode'),
+		calldata: z.string().describe('Transaction calldata to decode'),
 		abi: z
 			.string()
+			.optional()
 			.describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
 	}),
-	execute: async (env, {data, abi}) => {
+	execute: async (env, {calldata, abi}) => {
+		// If no ABI provided, just return the raw calldata info (selector)
+		if (!abi) {
+			const selector = calldata.slice(0, 10);
+			return {
+				success: true,
+				result: {
+					selector,
+					calldata,
+					message: 'No ABI provided - showing raw selector only',
+				},
+			};
+		}
+
 		const abiItem = parseAbiItem(abi);
 		if (abiItem.type !== 'function') {
 			return {
@@ -21,7 +35,7 @@ export const decode_calldata = createTool({
 		}
 
 		const decoded = decodeFunctionData({
-			data: data as `0x${string}`,
+			data: calldata as `0x${string}`,
 			abi: [abiItem as AbiFunction],
 		});
 
@@ -30,7 +44,7 @@ export const decode_calldata = createTool({
 			result: {
 				functionName: decoded.functionName,
 				args: decoded.args,
-				data,
+				calldata,
 			},
 		};
 	},

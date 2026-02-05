@@ -25,10 +25,16 @@ export type ToolResult =
 	| {success: false; error: string; stack?: string};
 
 /**
+ * Schema types that can be used for tool input parameters
+ * Supports ZodObject directly or ZodUnion of ZodObjects (for mutually exclusive params)
+ */
+export type ToolSchema = z.ZodObject<any> | z.ZodUnion<readonly [z.ZodObject<any>, ...z.ZodObject<any>[]]>;
+
+/**
  * Tool definition with execute, schema, and description
  * @template S - Zod schema type for input parameters
  */
-export type Tool<S extends z.ZodObject<any> = z.ZodObject<any>> = {
+export type Tool<S extends ToolSchema = z.ZodObject<any>> = {
 	/** Description of what the tool does */
 	description: string;
 	/** Zod schema for input parameters */
@@ -47,7 +53,7 @@ export type Tool<S extends z.ZodObject<any> = z.ZodObject<any>> = {
  * Use this instead of directly creating Tool objects to get proper TypeScript types
  * @template S - Zod schema type for input parameters
  */
-export function createTool<S extends z.ZodObject<any>>(config: {
+export function createTool<S extends ToolSchema>(config: {
 	description: string;
 	schema: S;
 	execute: (env: ToolEnvironment, params: z.infer<S>) => Promise<ToolResult>;
@@ -58,7 +64,7 @@ export function createTool<S extends z.ZodObject<any>>(config: {
 /**
  * Parameters for tool registration
  */
-export type RegisterToolParams<S extends z.ZodObject<any>> = {
+export type RegisterToolParams<S extends ToolSchema = z.ZodObject<any>> = {
 	/** MCP server instance */
 	server: McpServer;
 	/** Tool name (snake_case) */

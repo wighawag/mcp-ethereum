@@ -4,18 +4,21 @@ import {createTool} from '../types.js';
 export const wait_for_transaction_confirmation = createTool({
 	description: 'Wait For Transaction Confirmation',
 	schema: z.object({
-		txHash: z
+		hash: z
 			.string()
 			.regex(/^0x[a-fA-F0-9]{64}$/)
 			.describe('Transaction hash to monitor'),
-		expectedConformations: z.number().describe('Number of confirmations to wait for').default(1),
-		interval: z.number().describe('Interval in seconds between status checks').default(1),
-		timeout: z.number().describe('Timeout in seconds').default(300),
+		confirmations: z.number().optional().describe('Number of confirmations to wait for').default(1),
+		interval: z.number().optional().describe('Interval in seconds between status checks').default(1),
+		timeout: z.number().optional().describe('Timeout in milliseconds').default(300000),
 	}),
-	execute: async (env, {txHash, expectedConformations, interval, timeout}) => {
+	execute: async (env, {hash, confirmations, interval, timeout}) => {
+		const txHash = hash;
+		const expectedConfirmations = confirmations ?? 1;
+		const intervalSec = interval ?? 1;
+		const timeoutMs = timeout ?? 300000;
 		const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-		const intervalMs = interval * 1000;
-		const timeoutMs = timeout * 1000;
+		const intervalMs = intervalSec * 1000;
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < timeoutMs) {
@@ -28,7 +31,9 @@ export const wait_for_transaction_confirmation = createTool({
 
 				if (receipt) {
 					const txBlockNumber = receipt.blockNumber;
-					const confirmations = Number(currentBlockNumber - txBlockNumber);
+					// Being included in a block counts as 1 confirmation
+					// currentBlock - txBlock + 1 = confirmations
+					const currentConfirmations = Number(currentBlockNumber - txBlockNumber) + 1;
 
 					if (receipt.status === 'reverted') {
 						await env.sendStatus(`Transaction ${txHash} was reverted`);
@@ -41,9 +46,9 @@ export const wait_for_transaction_confirmation = createTool({
 							success: true,
 							result: {
 								status: 'reverted',
-								txHash,
+								transactionHash: txHash,
 								blockNumber: receipt.blockNumber,
-								confirmations,
+								confirmations: currentConfirmations,
 								receipt,
 								gasUsed: receipt.gasUsed?.toString(),
 								effectiveGasPrice: receipt.effectiveGasPrice?.toString(),
@@ -56,30 +61,30 @@ export const wait_for_transaction_confirmation = createTool({
 						blockNumber: receipt.blockNumber,
 					});
 
-					if (confirmations >= expectedConformations) {
+					if (currentConfirmations >= expectedConfirmations) {
 						await env.sendStatus(
-							`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
+							`Transaction ${txHash} confirmed with ${currentConfirmations} confirmations`,
 						);
 
 						return {
 							success: true,
 							result: {
 								status: 'confirmed',
-								txHash,
+								transactionHash: txHash,
 								blockNumber: receipt.blockNumber,
 								timestamp: block?.timestamp,
-								confirmations,
+								confirmations: currentConfirmations,
 								receipt,
 							},
 						};
 					}
 
 					await env.sendStatus(
-						`Transaction ${txHash} included in block ${txBlockNumber}. Waiting for ${expectedConformations - confirmations} more confirmations...`,
+						`Transaction ${txHash} included in block ${txBlockNumber}. Waiting for ${expectedConfirmations - currentConfirmations} more confirmations...`,
 					);
 				} else {
 					await env.sendStatus(
-						`Transaction ${txHash} not yet mined. Checking again in ${interval} seconds...`,
+						`Transaction ${txHash} not yet mined. Checking again in ${intervalSec} seconds...`,
 					);
 				}
 			} catch (error) {
@@ -92,12 +97,8 @@ export const wait_for_transaction_confirmation = createTool({
 		}
 
 		return {
-			success: true,
-			result: {
-				status: 'timeout',
-				txHash,
-				message: `Timeout reached after ${timeout} seconds`,
-			},
+			success: false,
+			error: `Timeout reached after ${timeoutMs} milliseconds waiting for transaction ${txHash}`,
 		};
 	},
 });

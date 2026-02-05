@@ -126,7 +126,6 @@ describe('CLI - Read-Only Tools', () => {
 				'--blockNumber',
 				'0',
 				'--includeTransactions',
-				'true',
 				'--rpc-url',
 				RPC_URL,
 			]);

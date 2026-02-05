@@ -22,7 +22,7 @@ describe('CLI - Query Tools', () => {
 			}
 		);
 		const txData = JSON.parse(sendResult.stdout);
-		txHash = txData.txHash;
+		txHash = txData.transactionHash;
 	}, 30000);
 
 	afterAll(async () => {

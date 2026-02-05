@@ -64,7 +64,7 @@ export function createTool<S extends ToolSchema>(config: {
 /**
  * Parameters for tool registration
  */
-export type RegisterToolParams<S extends ToolSchema = z.ZodObject<any>> = {
+export type RegisterToolParams<S extends ToolSchema> = {
 	/** MCP server instance */
 	server: McpServer;
 	/** Tool name (snake_case) */

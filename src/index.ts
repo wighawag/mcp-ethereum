@@ -5,6 +5,7 @@ import {Chain} from 'viem';
 import {ServerOptions} from '@modelcontextprotocol/sdk/server';
 import {getClients} from './helpers.js';
 import {registerTool} from './helpers.js';
+import type {Tool} from './types.js';
 import * as tools from './tools/index.js';
 
 export function createServer(
@@ -27,7 +28,7 @@ export function createServer(
 			{
 				server,
 				name,
-				tool,
+				tool: tool as Tool,
 			},
 			publicClient,
 			walletClient,

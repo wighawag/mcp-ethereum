@@ -62,7 +62,7 @@ export function stringifyWithBigInt(obj: any, space?: number): string {
 
 import type {PublicClient, WalletClient} from 'viem';
 import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import type {ToolEnvironment, Tool} from './types.js';
+import type {ToolEnvironment, Tool, ToolSchema} from './types.js';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 
 /**
@@ -136,7 +136,7 @@ function convertToCallToolResult(result: {
 /**
  * Register a tool with the MCP server
  */
-export function registerTool<S extends z.ZodObject<any>>(
+export function registerTool<S extends ToolSchema>(
 	{
 		server,
 		name,

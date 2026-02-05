@@ -105,10 +105,10 @@ function isOptionalField(field: z.ZodTypeAny): boolean {
  */
 function unwrapZodType(field: z.ZodTypeAny): z.ZodTypeAny {
 	if (field instanceof z.ZodOptional) {
-		return unwrapZodType(field.unwrap());
+		return unwrapZodType(field.unwrap() as z.ZodTypeAny);
 	}
 	if (field instanceof z.ZodDefault) {
-		return unwrapZodType(field._def.innerType);
+		return unwrapZodType(field._def.innerType as z.ZodTypeAny);
 	}
 	return field;
 }

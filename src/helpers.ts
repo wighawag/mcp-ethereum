@@ -141,7 +141,12 @@ function convertToCallToolResult(result: {
  * Register a tool with the MCP server
  */
 export function registerTool<S extends z.ZodObject<any>>(
-	{server, name, tool, withSendStatus = false}: {
+	{
+		server,
+		name,
+		tool,
+		withSendStatus = false,
+	}: {
 		server: McpServer;
 		name: string;
 		tool: Tool<S>;

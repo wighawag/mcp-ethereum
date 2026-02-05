@@ -54,8 +54,6 @@ export const call_contract = createTool({
 			blockTag: blockTag as any,
 		});
 
-		console.log('Result:', result);
-
 		return {
 			success: true,
 			result: {

@@ -1,6 +1,6 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import {setupTestEnvironment, teardownTestEnvironment, getTestContext} from './setup.js';
+import {setupTestEnvironment, teardownTestEnvironment, getTestContext} from '../setup.js';
 
 describe('Server Creation', () => {
 	let server: McpServer;

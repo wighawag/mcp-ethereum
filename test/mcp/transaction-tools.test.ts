@@ -6,12 +6,12 @@ import {
 	TEST_ADDRESS,
 	TEST_RECIPIENT,
 	ERC20_TRANSFER_ABI,
-} from './setup.js';
-import {callToolWithTextResponse} from './utils/index.js';
-import {createServer} from '../src/index.js';
+} from '../setup.js';
+import {callToolWithTextResponse} from '../utils/index.js';
+import {createServer} from '../../src/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {Client} from '@modelcontextprotocol/sdk/client';
-import {getChain} from '../src/helpers.js';
+import {getChain} from '../../src/helpers.js';
 
 const TEST_KEY = 'transaction';
 

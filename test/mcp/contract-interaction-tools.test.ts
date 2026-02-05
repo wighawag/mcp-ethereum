@@ -9,9 +9,9 @@ import {
 	ERC20_BALANCE_OF_ABI,
 	ERC20_TOTAL_SUPPLY_ABI,
 	ERC20_TRANSFER_ABI,
-} from './setup.js';
-import {callToolWithTextResponse} from './utils/index.js';
-import {TEST_CONTRACT_ADDRESS} from './utils/data.js';
+} from '../setup.js';
+import {callToolWithTextResponse} from '../utils/index.js';
+import {TEST_CONTRACT_ADDRESS} from '../utils/data.js';
 
 describe('Contract Interaction Tools', () => {
 	beforeAll(async () => {

@@ -7,8 +7,8 @@ import {
 	TRANSFER_EVENT_ABI,
 	APPROVAL_EVENT_ABI,
 	ERC20_TRANSFER_ABI,
-} from './setup.js';
-import {callToolWithTextResponse} from './utils/index.js';
+} from '../setup.js';
+import {callToolWithTextResponse} from '../utils/index.js';
 
 describe('Log Query Tools', () => {
 	beforeAll(async () => {

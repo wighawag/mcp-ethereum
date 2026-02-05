@@ -4,9 +4,9 @@ import {
 	teardownTestEnvironment,
 	getTestContext,
 	TEST_ADDRESS,
-} from './setup.js';
-import {callToolWithTextResponse} from './utils/index.js';
-import {TEST_CONTRACT_ADDRESS} from './utils/data.js';
+} from '../setup.js';
+import {callToolWithTextResponse} from '../utils/index.js';
+import {TEST_CONTRACT_ADDRESS} from '../utils/data.js';
 
 describe('Error Handling', () => {
 	beforeAll(async () => {

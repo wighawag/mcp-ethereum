@@ -1,6 +1,6 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
-import {setupTestEnvironment, teardownTestEnvironment, getTestContext} from './setup.js';
-import {callToolWithTextResponse} from './utils/index.js';
+import {setupTestEnvironment, teardownTestEnvironment, getTestContext} from '../setup.js';
+import {callToolWithTextResponse} from '../utils/index.js';
 
 describe('Advanced Features', () => {
 	beforeAll(async () => {

@@ -4,7 +4,7 @@ import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {createServer} from '../src/index.js';
 import {getChain} from '../src/helpers.js';
 import {createPublicClient, createWalletClient, http} from 'viem';
-import {TEST_CONTRACT_ABI, TEST_CONTRACT_BYTECODE} from './utils/data.js';
+import {TEST_CONTRACT_ABI, TEST_CONTRACT_ADDRESS, TEST_CONTRACT_BYTECODE} from './utils/data.js';
 import {assert} from 'vitest';
 import {RPC_URL} from './prool/url.js';
 
@@ -72,7 +72,8 @@ export async function setupTestEnvironment(): Promise<TestContext> {
 	console.log(`RPC ready at block ${blockNumber}`);
 
 	// Deploy test contract with retry mechanism
-	let deploymentReceipt: Awaited<ReturnType<typeof publicClient.waitForTransactionReceipt>> | null = null;
+	let deploymentReceipt: Awaited<ReturnType<typeof publicClient.waitForTransactionReceipt>> | null =
+		null;
 	let deploymentHash: `0x${string}` | null = null;
 	let deploymentRetries = 3;
 
@@ -89,7 +90,7 @@ export async function setupTestEnvironment(): Promise<TestContext> {
 			console.log(`Deployment transaction hash: ${deploymentHash}`);
 			deploymentReceipt = await publicClient.waitForTransactionReceipt({
 				hash: deploymentHash,
-				timeoutMs: 10000, // 10 second timeout
+				timeout: 10000, // 10 second timeout
 			});
 
 			// Check if transaction was successful
@@ -126,9 +127,8 @@ export async function setupTestEnvironment(): Promise<TestContext> {
 	}
 
 	assert(
-		deploymentReceipt.contractAddress.toLowerCase() ===
-			'0x5FbDB2315678afecb367f032d93F642f64180aa3'.toLowerCase(),
-		`Expected contract address 0x5FbDB2315678afecb367f032d93F642f64180aa3, but got ${deploymentReceipt.contractAddress}`,
+		deploymentReceipt.contractAddress.toLowerCase() === TEST_CONTRACT_ADDRESS.toLowerCase(),
+		`Expected contract address ${TEST_CONTRACT_ADDRESS}, but got ${deploymentReceipt.contractAddress}`,
 	);
 
 	// Transfer some tokens to test address

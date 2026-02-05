@@ -1,8 +1,8 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
 import {
-	setupTestEnvironment,
+	setupTestEnvironmentForMPCServer,
 	teardownTestEnvironment,
-	getTestContext,
+	getTestContextForMPCServer,
 	TEST_ADDRESS,
 } from '../setup.js';
 import {callToolWithTextResponse} from '../utils/index.js';
@@ -10,7 +10,7 @@ import {TEST_CONTRACT_ADDRESS} from '../utils/data.js';
 
 describe('Read-Only Tools', () => {
 	beforeAll(async () => {
-		await setupTestEnvironment();
+		await setupTestEnvironmentForMPCServer();
 	}, 30000);
 
 	afterAll(async () => {
@@ -19,7 +19,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_balance', () => {
 		it('should get ETH balance for an address', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_balance',
 				arguments: {
@@ -34,7 +34,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get balance with blockTag', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_balance',
 				arguments: {
@@ -50,7 +50,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_block', () => {
 		it('should get latest block', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_block',
 				arguments: {},
@@ -64,7 +64,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get block by number', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_block',
 				arguments: {
@@ -78,7 +78,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get block with transactions', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_block',
 				arguments: {
@@ -92,7 +92,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get block by hash', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			// First get a block to get its hash
 			const blockResult = await callToolWithTextResponse(client, {
 				name: 'get_block',
@@ -119,7 +119,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_latest_block', () => {
 		it('should get latest block information', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_latest_block',
 				arguments: {},
@@ -133,7 +133,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_block_number', () => {
 		it('should get current block number', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_block_number',
 				arguments: {},
@@ -146,7 +146,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_chain_id', () => {
 		it('should get current chain ID', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_chain_id',
 				arguments: {},
@@ -159,7 +159,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_gas_price', () => {
 		it('should get current gas price', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_gas_price',
 				arguments: {},
@@ -173,7 +173,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_transaction_count', () => {
 		it('should get transaction count for an address', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_transaction_count',
 				arguments: {
@@ -189,7 +189,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_code', () => {
 		it('should get code at an address (EOA)', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_code',
 				arguments: {
@@ -203,7 +203,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get code with blockTag', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_code',
 				arguments: {
@@ -217,7 +217,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get code at contract address', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_code',
 				arguments: {
@@ -232,7 +232,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_storage_at', () => {
 		it('should get contract storage value at a slot', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_storage_at',
 				arguments: {
@@ -248,7 +248,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get storage with hex slot', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_storage_at',
 				arguments: {
@@ -264,7 +264,7 @@ describe('Read-Only Tools', () => {
 
 	describe('get_fee_history', () => {
 		it('should get fee history for EIP-1559 pricing', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_fee_history',
 				arguments: {
@@ -280,7 +280,7 @@ describe('Read-Only Tools', () => {
 		});
 
 		it('should get fee history with newestBlock as number', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_fee_history',
 				arguments: {

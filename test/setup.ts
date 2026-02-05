@@ -3,10 +3,11 @@ import {Client} from '@modelcontextprotocol/sdk/client';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {createServer} from '../src/index.js';
 import {getChain} from '../src/helpers.js';
-import {createPublicClient, createWalletClient, http} from 'viem';
+import {Chain, createPublicClient, createWalletClient, http} from 'viem';
 import {TEST_CONTRACT_ABI, TEST_CONTRACT_ADDRESS, TEST_CONTRACT_BYTECODE} from './utils/data.js';
 import {assert} from 'vitest';
 import {RPC_URL} from './prool/url.js';
+import test from 'node:test';
 
 // Test addresses
 export const TEST_DEPLOYER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'; // acount 1
@@ -26,15 +27,20 @@ export const APPROVAL_EVENT_ABI =
 
 // Test context type
 export type TestContext = {
-	server: McpServer;
-	client: Client;
+	chain: Chain;
 	rpcUrl: string;
 	walletClient: ReturnType<typeof createWalletClient>;
 	publicClient: ReturnType<typeof createPublicClient>;
 };
 
+export type TestContextWithMPCServer = TestContext & {
+	client: Client;
+	server: McpServer;
+};
+
 // Global test setup
 let testContext: TestContext | null = null;
+let testContextForMPCServer: TestContextWithMPCServer | null = null;
 
 /**
  * Setup test environment - starts Anvil, deploys test contract, creates MCP server
@@ -80,9 +86,26 @@ export async function setupTestEnvironment(): Promise<TestContext> {
 	});
 	await publicClient.waitForTransactionReceipt({hash: hashForTokens});
 
+	testContext = {
+		chain,
+		rpcUrl,
+		walletClient,
+		publicClient,
+	};
+
+	return testContext;
+}
+
+export async function setupTestEnvironmentForMPCServer(): Promise<TestContextWithMPCServer> {
+	if (testContextForMPCServer) {
+		return testContextForMPCServer;
+	}
+
+	const testContext = await setupTestEnvironment();
+
 	// Create MCP server
 	const server = createServer({
-		chain,
+		chain: testContext.chain,
 		privateKey: TEST_PRIVATE_KEY,
 	});
 
@@ -92,23 +115,21 @@ export async function setupTestEnvironment(): Promise<TestContext> {
 
 	await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
 
-	testContext = {
+	testContextForMPCServer = {
+		...testContext,
 		server,
 		client,
-		rpcUrl,
-		walletClient,
-		publicClient,
 	};
 
-	return testContext;
+	return testContextForMPCServer;
 }
 
 /**
  * Tear down test environment - stops Anvil and closes client connection
  */
 export async function teardownTestEnvironment(): Promise<void> {
-	if (testContext) {
-		await testContext.client.close();
+	if (testContextForMPCServer) {
+		await testContextForMPCServer.client.close();
 	}
 	testContext = null;
 }
@@ -121,4 +142,14 @@ export function getTestContext(): TestContext {
 		throw new Error('Test context not initialized. Call setupTestEnvironment() first.');
 	}
 	return testContext;
+}
+
+/**
+ * Get or create test context
+ */
+export function getTestContextForMPCServer(): TestContextWithMPCServer {
+	if (!testContextForMPCServer) {
+		throw new Error('Test context not initialized. Call setupTestEnvironmentForMPCServer() first.');
+	}
+	return testContextForMPCServer;
 }

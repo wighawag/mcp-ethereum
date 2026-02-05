@@ -1,16 +1,15 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
 import {
-	setupTestEnvironment,
+	setupTestEnvironmentForMPCServer,
 	teardownTestEnvironment,
-	getTestContext,
-	TEST_ADDRESS,
+	getTestContextForMPCServer,
 } from '../setup.js';
 import {callToolWithTextResponse} from '../utils/index.js';
 import {TEST_CONTRACT_ADDRESS} from '../utils/data.js';
 
 describe('Error Handling', () => {
 	beforeAll(async () => {
-		await setupTestEnvironment();
+		await setupTestEnvironmentForMPCServer();
 	}, 30000);
 
 	afterAll(async () => {
@@ -18,7 +17,7 @@ describe('Error Handling', () => {
 	});
 
 	it('should handle invalid address format', async () => {
-		const {client} = getTestContext();
+		const {client} = getTestContextForMPCServer();
 		const result = await callToolWithTextResponse(client, {
 			name: 'get_balance',
 			arguments: {
@@ -31,7 +30,7 @@ describe('Error Handling', () => {
 	});
 
 	it('should handle invalid transaction hash format', async () => {
-		const {client} = getTestContext();
+		const {client} = getTestContextForMPCServer();
 		const result = await callToolWithTextResponse(client, {
 			name: 'get_transaction',
 			arguments: {
@@ -52,7 +51,7 @@ describe('Error Handling', () => {
 	});
 
 	it('should handle invalid ABI', async () => {
-		const {client} = getTestContext();
+		const {client} = getTestContextForMPCServer();
 		const result = await callToolWithTextResponse(client, {
 			name: 'call_contract',
 			arguments: {

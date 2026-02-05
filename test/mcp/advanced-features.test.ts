@@ -1,10 +1,14 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
-import {setupTestEnvironment, teardownTestEnvironment, getTestContext} from '../setup.js';
+import {
+	setupTestEnvironmentForMPCServer,
+	teardownTestEnvironment,
+	getTestContextForMPCServer,
+} from '../setup.js';
 import {callToolWithTextResponse} from '../utils/index.js';
 
 describe('Advanced Features', () => {
 	beforeAll(async () => {
-		await setupTestEnvironment();
+		await setupTestEnvironmentForMPCServer();
 	}, 30000);
 
 	afterAll(async () => {
@@ -13,7 +17,7 @@ describe('Advanced Features', () => {
 
 	describe('sign_message', () => {
 		it('should sign a message', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'sign_message',
 				arguments: {
@@ -28,7 +32,7 @@ describe('Advanced Features', () => {
 		});
 
 		it('should sign a longer message', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const longMessage =
 				'This is a longer message that should still be signed correctly by the wallet client.';
 			const result = await callToolWithTextResponse(client, {

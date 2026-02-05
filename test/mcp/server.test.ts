@@ -1,12 +1,12 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import {setupTestEnvironment, teardownTestEnvironment, getTestContext} from '../setup.js';
+import {setupTestEnvironmentForMPCServer, teardownTestEnvironment} from '../setup.js';
 
 describe('Server Creation', () => {
 	let server: McpServer;
 
 	beforeAll(async () => {
-		const context = await setupTestEnvironment();
+		const context = await setupTestEnvironmentForMPCServer();
 		server = context.server;
 	}, 30000);
 

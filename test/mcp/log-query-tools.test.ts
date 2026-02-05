@@ -1,8 +1,8 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
 import {
-	setupTestEnvironment,
+	setupTestEnvironmentForMPCServer,
 	teardownTestEnvironment,
-	getTestContext,
+	getTestContextForMPCServer,
 	TEST_RECIPIENT,
 	TRANSFER_EVENT_ABI,
 	APPROVAL_EVENT_ABI,
@@ -12,7 +12,7 @@ import {callToolWithTextResponse} from '../utils/index.js';
 
 describe('Log Query Tools', () => {
 	beforeAll(async () => {
-		await setupTestEnvironment();
+		await setupTestEnvironmentForMPCServer();
 	}, 30000);
 
 	afterAll(async () => {
@@ -21,7 +21,7 @@ describe('Log Query Tools', () => {
 
 	describe('get_contract_logs', () => {
 		it('should get logs from a contract', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			// Send a transaction to generate a log
 			await callToolWithTextResponse(client, {
 				name: 'send_transaction',
@@ -48,7 +48,7 @@ describe('Log Query Tools', () => {
 		});
 
 		it('should get logs with block numbers', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_contract_logs',
 				arguments: {
@@ -64,7 +64,7 @@ describe('Log Query Tools', () => {
 		});
 
 		it('should decode logs with event ABI', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			// Send a transaction to generate a log
 			await callToolWithTextResponse(client, {
 				name: 'send_transaction',
@@ -94,7 +94,7 @@ describe('Log Query Tools', () => {
 		});
 
 		it('should decode logs with multiple event ABIs', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_contract_logs',
 				arguments: {
@@ -110,7 +110,7 @@ describe('Log Query Tools', () => {
 		});
 
 		it('should decode logs with JSON format event ABI', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const jsonEventAbi = JSON.stringify({
 				type: 'event',
 				name: 'Transfer',
@@ -139,7 +139,7 @@ describe('Log Query Tools', () => {
 
 	describe('get_transaction_logs', () => {
 		it('should get logs for a transaction', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			// Send a transaction
 			const sendResult = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
@@ -167,7 +167,7 @@ describe('Log Query Tools', () => {
 		});
 
 		it('should decode transaction logs with event ABI', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			// Send a transaction
 			const sendResult = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
@@ -197,7 +197,7 @@ describe('Log Query Tools', () => {
 		});
 
 		it('should return error for non-existent transaction', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_transaction_logs',
 				arguments: {

@@ -1,8 +1,8 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
 import {
-	setupTestEnvironment,
+	setupTestEnvironmentForMPCServer,
 	teardownTestEnvironment,
-	getTestContext,
+	getTestContextForMPCServer,
 	TEST_ADDRESS,
 	TEST_RECIPIENT,
 	ERC20_TRANSFER_ABI,
@@ -13,20 +13,18 @@ import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {Client} from '@modelcontextprotocol/sdk/client';
 import {getChain} from '../../src/helpers.js';
 
-const TEST_KEY = 'transaction';
-
 describe('Transaction Tools', () => {
 	beforeAll(async () => {
-		await setupTestEnvironment(TEST_KEY);
+		await setupTestEnvironmentForMPCServer();
 	}, 30000);
 
 	afterAll(async () => {
-		await teardownTestEnvironment(TEST_KEY);
+		await teardownTestEnvironment();
 	});
 
 	describe('send_transaction', () => {
 		it('should send a simple ETH transfer', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
 				arguments: {
@@ -41,7 +39,7 @@ describe('Transaction Tools', () => {
 		});
 
 		it('should send contract call transaction', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
 				arguments: {
@@ -57,7 +55,7 @@ describe('Transaction Tools', () => {
 		});
 
 		it('should send transaction with gas parameters', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
 				arguments: {
@@ -74,7 +72,7 @@ describe('Transaction Tools', () => {
 		});
 
 		it('should send transaction with gas limit', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
 				arguments: {
@@ -90,7 +88,7 @@ describe('Transaction Tools', () => {
 		});
 
 		it('should send transaction with nonce', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			// First get the nonce
 			const nonceResult = await callToolWithTextResponse(client, {
 				name: 'get_transaction_count',
@@ -115,7 +113,7 @@ describe('Transaction Tools', () => {
 		});
 
 		it('should return error when sending transaction without private key', async () => {
-			const {rpcUrl} = getTestContext();
+			const {rpcUrl} = getTestContextForMPCServer();
 			// Create a server without private key
 			const serverWithoutKey = createServer({
 				chain: await getChain(rpcUrl),
@@ -152,7 +150,7 @@ describe('Transaction Tools', () => {
 
 	describe('get_transaction', () => {
 		it('should get transaction details by hash', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			// First send a transaction
 			const sendResult = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
@@ -181,7 +179,7 @@ describe('Transaction Tools', () => {
 		});
 
 		it('should return error for non-existent transaction', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'get_transaction',
 				arguments: {
@@ -197,7 +195,7 @@ describe('Transaction Tools', () => {
 
 	describe('wait_for_transaction_confirmation', () => {
 		it('should wait for transaction confirmation', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			// Send a transaction
 			const sendResult = await callToolWithTextResponse(client, {
 				name: 'send_transaction',
@@ -225,7 +223,7 @@ describe('Transaction Tools', () => {
 		}, 15000);
 
 		it('should handle timeout', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'wait_for_transaction_confirmation',
 				arguments: {
@@ -242,7 +240,7 @@ describe('Transaction Tools', () => {
 		}, 5000);
 
 		it('should handle reverted transaction', async () => {
-			const {client} = getTestContext(TEST_KEY);
+			const {client} = getTestContextForMPCServer();
 			// Send a transaction that will revert by calling a non-existent function
 			const NON_EXISTENT_FUNCTION_ABI = 'function thisFunctionDoesNotExist() returns (uint256)';
 

@@ -1,8 +1,8 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
 import {
-	setupTestEnvironment,
+	setupTestEnvironmentForMPCServer,
 	teardownTestEnvironment,
-	getTestContext,
+	getTestContextForMPCServer,
 	TEST_ADDRESS,
 	TEST_RECIPIENT,
 	TRANSFER_EVENT_ABI,
@@ -15,7 +15,7 @@ import {TEST_CONTRACT_ADDRESS} from '../utils/data.js';
 
 describe('Contract Interaction Tools', () => {
 	beforeAll(async () => {
-		await setupTestEnvironment();
+		await setupTestEnvironmentForMPCServer();
 	}, 30000);
 
 	afterAll(async () => {
@@ -24,7 +24,7 @@ describe('Contract Interaction Tools', () => {
 
 	describe('call_contract', () => {
 		it('should call a read-only contract function', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'call_contract',
 				arguments: {
@@ -39,7 +39,7 @@ describe('Contract Interaction Tools', () => {
 		});
 
 		it('should call contract with arguments', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'call_contract',
 				arguments: {
@@ -54,7 +54,7 @@ describe('Contract Interaction Tools', () => {
 		});
 
 		it('should call contract with blockTag', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'call_contract',
 				arguments: {
@@ -70,7 +70,7 @@ describe('Contract Interaction Tools', () => {
 		});
 
 		it('should return error for non-function ABI', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'call_contract',
 				arguments: {
@@ -88,7 +88,7 @@ describe('Contract Interaction Tools', () => {
 
 	describe('estimate_gas', () => {
 		it('should estimate gas for simple ETH transfer', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'estimate_gas',
 				arguments: {
@@ -103,7 +103,7 @@ describe('Contract Interaction Tools', () => {
 		});
 
 		it('should estimate gas for contract call', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'estimate_gas',
 				arguments: {
@@ -118,7 +118,7 @@ describe('Contract Interaction Tools', () => {
 		});
 
 		it('should estimate gas with value', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'estimate_gas',
 				arguments: {
@@ -134,7 +134,7 @@ describe('Contract Interaction Tools', () => {
 
 	describe('encode_calldata', () => {
 		it('should encode function arguments', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'encode_calldata',
 				arguments: {
@@ -150,7 +150,7 @@ describe('Contract Interaction Tools', () => {
 		});
 
 		it('should return error for non-function ABI', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'encode_calldata',
 				arguments: {
@@ -167,7 +167,7 @@ describe('Contract Interaction Tools', () => {
 
 	describe('decode_calldata', () => {
 		it('should decode calldata using function ABI', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			// First encode the data
 			const encodeResult = await callToolWithTextResponse(client, {
 				name: 'encode_calldata',
@@ -196,7 +196,7 @@ describe('Contract Interaction Tools', () => {
 		});
 
 		it('should return error for non-function ABI', async () => {
-			const {client} = getTestContext();
+			const {client} = getTestContextForMPCServer();
 			const result = await callToolWithTextResponse(client, {
 				name: 'decode_calldata',
 				arguments: {

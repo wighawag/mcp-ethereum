@@ -1,15 +1,26 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 import {parseAbiItem, decodeEventLog} from 'viem';
 import type {AbiEvent} from 'viem';
 
-export const get_contract_logs: Tool = {
+export const get_contract_logs = createTool({
 	description: 'Fetch logs for a contract, optionally decoding them using event ABI',
 	schema: z.object({
 		contractAddress: z.string().describe('Contract address to fetch logs from'),
-		fromBlock: z.union([z.number(), z.literal('latest'), z.literal('pending')]).optional().describe('Starting block number (or "latest", "pending")'),
-		toBlock: z.union([z.number(), z.literal('latest'), z.literal('pending')]).optional().describe('Ending block number (or "latest", "pending")'),
-		eventAbis: z.array(z.string()).optional().describe('Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format'),
+		fromBlock: z
+			.union([z.number(), z.literal('latest'), z.literal('pending')])
+			.optional()
+			.describe('Starting block number (or "latest", "pending")'),
+		toBlock: z
+			.union([z.number(), z.literal('latest'), z.literal('pending')])
+			.optional()
+			.describe('Ending block number (or "latest", "pending")'),
+		eventAbis: z
+			.array(z.string())
+			.optional()
+			.describe(
+				'Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format',
+			),
 	}),
 	execute: async (env, {contractAddress, fromBlock, toBlock, eventAbis}) => {
 		const filter: any = {
@@ -81,4 +92,4 @@ export const get_contract_logs: Tool = {
 			},
 		};
 	},
-};
+});

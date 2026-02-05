@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_code: Tool = {
+export const get_code = createTool({
 	description: 'Get bytecode at an address (useful for checking if an address is a contract)',
 	schema: z.object({
 		address: z.string().describe('Address to get code from'),
@@ -27,4 +27,4 @@ export const get_code: Tool = {
 			},
 		};
 	},
-};
+});

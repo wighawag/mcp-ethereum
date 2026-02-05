@@ -1,21 +1,35 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 import {encodeFunctionData, parseAbiItem} from 'viem';
 
-export const send_transaction: Tool = {
+export const send_transaction = createTool({
 	description: 'Send a transaction, optionally calling a contract function with ABI',
 	schema: z.object({
 		to: z.string().describe('Recipient address or contract address'),
-		value: z.string().optional().describe('Optional amount of ETH to send in wei (e.g., "1000000000000000000" for 1 ETH)'),
-		abi: z.string().optional().describe('Optional ABI element for the function to call (e.g., "function transfer(address to, uint256 amount)")'),
-		args: z.array(z.union([z.string(), z.number(), z.boolean()])).optional().describe('Optional arguments to pass to the function'),
+		value: z
+			.string()
+			.optional()
+			.describe('Optional amount of ETH to send in wei (e.g., "1000000000000000000" for 1 ETH)'),
+		abi: z
+			.string()
+			.optional()
+			.describe(
+				'Optional ABI element for the function to call (e.g., "function transfer(address to, uint256 amount)")',
+			),
+		args: z
+			.array(z.union([z.string(), z.number(), z.boolean()]))
+			.optional()
+			.describe('Optional arguments to pass to the function'),
 		maxFeePerGas: z.string().optional().describe('Optional EIP-1559 max fee per gas in wei'),
-		maxPriorityFeePerGas: z.string().optional().describe('Optional EIP-1559 max priority fee per gas in wei'),
+		maxPriorityFeePerGas: z
+			.string()
+			.optional()
+			.describe('Optional EIP-1559 max priority fee per gas in wei'),
 		gas: z.string().optional().describe('Optional gas limit in wei'),
 		nonce: z.number().optional().describe('Optional nonce for the transaction'),
 	}),
 	execute: async (env, params) => {
-		const {to, value, abi, args, maxFeePerGas, maxPriorityFeePerGas, gas, nonce} = params as any;
+		const {to, value, abi, args, maxFeePerGas, maxPriorityFeePerGas, gas, nonce} = params;
 
 		if (!env.walletClient) {
 			return {
@@ -67,4 +81,4 @@ export const send_transaction: Tool = {
 			},
 		};
 	},
-};
+});

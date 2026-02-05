@@ -1,13 +1,21 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 import {parseAbiItem, decodeEventLog} from 'viem';
 import type {AbiEvent} from 'viem';
 
-export const get_transaction_logs: Tool = {
+export const get_transaction_logs = createTool({
 	description: 'Get the events/logs of a transaction, optionally decoding them using event ABI',
 	schema: z.object({
-		txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).describe('Transaction hash to get logs from'),
-		eventAbis: z.array(z.string()).optional().describe('Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format'),
+		txHash: z
+			.string()
+			.regex(/^0x[a-fA-F0-9]{64}$/)
+			.describe('Transaction hash to get logs from'),
+		eventAbis: z
+			.array(z.string())
+			.optional()
+			.describe(
+				'Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format',
+			),
 	}),
 	execute: async (env, {txHash, eventAbis}) => {
 		const receipt = await env.publicClient.getTransactionReceipt({
@@ -75,4 +83,4 @@ export const get_transaction_logs: Tool = {
 			},
 		};
 	},
-};
+});

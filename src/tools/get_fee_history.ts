@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_fee_history: Tool = {
+export const get_fee_history = createTool({
 	description: 'Get historical gas fee data for EIP-1559 pricing',
 	schema: z.object({
 		blockCount: z.number().describe('Number of blocks to fetch fee history for'),
@@ -25,4 +25,4 @@ export const get_fee_history: Tool = {
 			},
 		};
 	},
-};
+});

@@ -1,10 +1,13 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const wait_for_transaction_confirmation: Tool = {
+export const wait_for_transaction_confirmation = createTool({
 	description: 'Wait For Transaction Confirmation',
 	schema: z.object({
-		txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).describe('Transaction hash to monitor'),
+		txHash: z
+			.string()
+			.regex(/^0x[a-fA-F0-9]{64}$/)
+			.describe('Transaction hash to monitor'),
 		expectedConformations: z.number().describe('Number of confirmations to wait for').default(1),
 		interval: z.number().describe('Interval in seconds between status checks').default(1),
 		timeout: z.number().describe('Timeout in seconds').default(300),
@@ -54,7 +57,9 @@ export const wait_for_transaction_confirmation: Tool = {
 					});
 
 					if (confirmations >= expectedConformations) {
-						await env?.sendStatus?.(`Transaction ${txHash} confirmed with ${confirmations} confirmations`);
+						await env?.sendStatus?.(
+							`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
+						);
 
 						return {
 							success: true,
@@ -73,7 +78,9 @@ export const wait_for_transaction_confirmation: Tool = {
 						`Transaction ${txHash} included in block ${txBlockNumber}. Waiting for ${expectedConformations - confirmations} more confirmations...`,
 					);
 				} else {
-					await env?.sendStatus?.(`Transaction ${txHash} not yet mined. Checking again in ${interval} seconds...`);
+					await env?.sendStatus?.(
+						`Transaction ${txHash} not yet mined. Checking again in ${interval} seconds...`,
+					);
 				}
 			} catch (error) {
 				await env?.sendStatus?.(
@@ -93,4 +100,4 @@ export const wait_for_transaction_confirmation: Tool = {
 			},
 		};
 	},
-};
+});

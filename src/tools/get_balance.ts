@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_balance: Tool = {
+export const get_balance = createTool({
 	description: 'Get ETH balance for an address',
 	schema: z.object({
 		address: z.string().describe('Address to check balance'),
@@ -26,4 +26,4 @@ export const get_balance: Tool = {
 			},
 		};
 	},
-};
+});

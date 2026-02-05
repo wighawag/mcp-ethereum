@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_chain_id: Tool = {
+export const get_chain_id = createTool({
 	description: 'Get current chain ID',
 	schema: z.object({}),
 	execute: async (env) => {
@@ -14,4 +14,4 @@ export const get_chain_id: Tool = {
 			},
 		};
 	},
-};
+});

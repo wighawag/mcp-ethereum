@@ -1,9 +1,9 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 import {parseAbiItem, decodeFunctionData} from 'viem';
 import type {AbiFunction} from 'viem';
 
-export const decode_calldata: Tool = {
+export const decode_calldata = createTool({
 	description: 'Decode transaction calldata using function ABI',
 	schema: z.object({
 		data: z.string().describe('Transaction calldata to decode'),
@@ -32,4 +32,4 @@ export const decode_calldata: Tool = {
 			},
 		};
 	},
-};
+});

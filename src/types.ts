@@ -43,6 +43,19 @@ export type Tool<S extends z.ZodObject<any> = z.ZodObject<any>> = {
 };
 
 /**
+ * Helper function to create a tool with automatic type inference
+ * Use this instead of directly creating Tool objects to get proper TypeScript types
+ * @template S - Zod schema type for input parameters
+ */
+export function createTool<S extends z.ZodObject<any>>(config: {
+	description: string;
+	schema: S;
+	execute: (env: ToolEnvironment, params: z.infer<S>) => Promise<ToolResult>;
+}): Tool<S> {
+	return config;
+}
+
+/**
  * Parameters for tool registration
  */
 export type RegisterToolParams<S extends z.ZodObject<any>> = {

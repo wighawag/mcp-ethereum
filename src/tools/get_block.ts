@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_block: Tool = {
+export const get_block = createTool({
 	description: 'Get a specific block by number or hash',
 	schema: z.object({
 		blockNumber: z
@@ -49,4 +49,4 @@ export const get_block: Tool = {
 			},
 		};
 	},
-};
+});

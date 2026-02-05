@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_transaction: Tool = {
+export const get_transaction = createTool({
 	description: 'Get full transaction details by hash',
 	schema: z.object({
 		txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).describe('Transaction hash to get details for'),
@@ -39,4 +39,4 @@ export const get_transaction: Tool = {
 			},
 		};
 	},
-};
+});

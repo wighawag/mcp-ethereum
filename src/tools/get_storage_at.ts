@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_storage_at: Tool = {
+export const get_storage_at = createTool({
 	description: 'Get contract storage value at a specific slot',
 	schema: z.object({
 		address: z.string().describe('Contract address'),
@@ -29,4 +29,4 @@ export const get_storage_at: Tool = {
 			},
 		};
 	},
-};
+});

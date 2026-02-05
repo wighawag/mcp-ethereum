@@ -1,9 +1,9 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 import {parseAbiItem, encodeFunctionData} from 'viem';
 import type {AbiFunction} from 'viem';
 
-export const encode_calldata: Tool = {
+export const encode_calldata = createTool({
 	description: 'Encode function arguments for transactions',
 	schema: z.object({
 		abi: z.string().describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
@@ -32,4 +32,4 @@ export const encode_calldata: Tool = {
 			},
 		};
 	},
-};
+});

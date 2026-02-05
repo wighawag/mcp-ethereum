@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const sign_message: Tool = {
+export const sign_message = createTool({
 	description: 'Sign a message using the wallet (personal_sign)',
 	schema: z.object({
 		message: z.string().describe('Message to sign'),
@@ -16,15 +16,15 @@ export const sign_message: Tool = {
 
 		const signature = await env.walletClient.signMessage({
 			message,
-		});
+		} as any);
 
 		return {
 			success: true,
 			result: {
 				message,
 				signature,
-				address: env.walletClient.account.address,
+				address: env.walletClient.account?.address,
 			},
 		};
 	},
-};
+});

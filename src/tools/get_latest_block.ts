@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 
-export const get_latest_block: Tool = {
+export const get_latest_block = createTool({
 	description: 'Get the latest block information',
 	schema: z.object({}),
 	execute: async (env) => {
@@ -12,4 +12,4 @@ export const get_latest_block: Tool = {
 			result: block,
 		};
 	},
-};
+});

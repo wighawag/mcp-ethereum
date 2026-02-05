@@ -1,9 +1,9 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 import {parseAbiItem, encodeFunctionData} from 'viem';
 import type {AbiFunction} from 'viem';
 
-export const estimate_gas: Tool = {
+export const estimate_gas = createTool({
 	description: 'Estimate gas cost for a transaction before sending',
 	schema: z.object({
 		to: z.string().describe('Recipient address or contract address'),
@@ -33,7 +33,7 @@ export const estimate_gas: Tool = {
 
 		if (from) {
 			request.account = from as `0x${string}`;
-		} else if (env.walletClient) {
+		} else if (env.walletClient?.account) {
 			request.account = env.walletClient.account.address;
 		}
 
@@ -43,11 +43,11 @@ export const estimate_gas: Tool = {
 			success: true,
 			result: {
 				to,
-				from: from || (env.walletClient?.account.address),
+				from: from || env.walletClient?.account?.address,
 				value: value || '0',
 				gasEstimate: gasEstimate.toString(),
 				gasEstimateInGwei: Number(gasEstimate) / 1e9,
 			},
 		};
 	},
-};
+});

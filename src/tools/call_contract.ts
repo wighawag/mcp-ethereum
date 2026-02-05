@@ -1,9 +1,9 @@
 import {z} from 'zod';
-import type {Tool, ToolEnvironment, ToolResult} from '../types.js';
+import {createTool} from '../types.js';
 import {parseAbiItem} from 'viem';
 import type {AbiFunction} from 'viem';
 
-export const call_contract: Tool = {
+export const call_contract = createTool({
 	description: 'Call a read-only contract function (view/pure) without spending gas',
 	schema: z.object({
 		address: z.string().describe('Contract address to call'),
@@ -41,4 +41,4 @@ export const call_contract: Tool = {
 			},
 		};
 	},
-};
+});

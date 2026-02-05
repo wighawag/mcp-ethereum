@@ -1,6 +1,6 @@
 {
 	"name": "tools-ethereum",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "tools for ethereum via cli, including an mcp server",
 	"author": "Ronan Sandford",
 	"license": "MIT",

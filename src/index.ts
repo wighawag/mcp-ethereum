@@ -7,9 +7,6 @@ import {getClients} from './helpers.js';
 import {registerTool} from './helpers.js';
 import * as tools from './tools/index.js';
 
-// Tools that need sendStatus capability
-const TOOLS_WITH_STATUS = new Set(['wait_for_transaction_confirmation']);
-
 export function createServer(
 	params: {chain: Chain; privateKey?: `0x${string}`},
 	options?: {rpcURL?: string; serverOptions?: ServerOptions; serverInfo?: Implementation},

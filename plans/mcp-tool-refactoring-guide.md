@@ -24,8 +24,8 @@ import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 
 // Environment provided to tool execute functions
 export type ToolEnvironment = {
-  // Optional function to send status updates during tool execution
-  sendStatus?: (message: string) => Promise<void>;
+  // Function to send status updates during tool execution (required)
+  sendStatus: (message: string) => Promise<void>;
   // Your framework's client(s) - customize for your project
   client: YourClientType;
   // Optional additional clients or services
@@ -88,32 +88,28 @@ import {z} from 'zod';
 import type {Tool, ToolEnvironment} from './types.js';
 import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 
-// Create tool environment with optional sendStatus
+// Create tool environment with sendStatus
 export function createToolEnvironment(
   server: McpServer,
   client: YourClientType,
   walletClient?: WalletClientType,
-  withSendStatus: boolean = false,
   sessionId?: string,
 ): ToolEnvironment {
-  const env: ToolEnvironment = {
+  return {
+    sendStatus: async (message: string) => {
+      if (sessionId) {
+        await server.sendRequest({
+          method: 'notifications/progress',
+          params: {
+            sessionId,
+            message,
+          },
+        });
+      }
+    },
     client,
     walletClient,
   };
-
-  if (withSendStatus && sessionId) {
-    env.sendStatus = async (message: string) => {
-      await server.sendRequest({
-        method: 'notifications/progress',
-        params: {
-          sessionId,
-          message,
-        },
-      });
-    };
-  }
-
-  return env;
 }
 
 // Register tool with MCP server
@@ -121,12 +117,10 @@ export function registerTool<S extends z.ZodObject<any>>({
   server,
   name,
   tool,
-  withSendStatus = false,
 }: {
   server: McpServer;
   name: string;
   tool: Tool<S>;
-  withSendStatus?: boolean;
 }): void {
   server.registerTool(name, {
     description: tool.description,
@@ -137,7 +131,6 @@ export function registerTool<S extends z.ZodObject<any>>({
       // Pass your clients here
       yourClient,
       walletClient,
-      withSendStatus,
       mcpExtra.sessionId,
     );
 
@@ -238,16 +231,12 @@ server.registerTool('get_user', {
 import * as tools from './tools/index.js';
 import {registerTool} from './helpers.js';
 
-// Define which tools need sendStatus
-const TOOLS_WITH_STATUS = new Set(['long_running_task']);
-
 // Register all tools
 for (const [name, tool] of Object.entries(tools)) {
   registerTool({
     server,
     name,
     tool,
-    withSendStatus: TOOLS_WITH_STATUS.has(name),
   });
 }
 ```
@@ -322,9 +311,6 @@ export const create_item = createTool({
 ### Tool with Progress Updates
 
 ```typescript
-// In server registration:
-const TOOLS_WITH_STATUS = new Set(['process_data']);
-
 // Tool file:
 export const process_data = createTool({
   description: 'Process data with progress updates',
@@ -332,15 +318,15 @@ export const process_data = createTool({
     dataId: z.string().describe('Data ID to process'),
   }),
   execute: async (env, {dataId}) => {
-    await env.sendStatus?.('Starting processing...');
+    await env.sendStatus('Starting processing...');
     
     const steps = ['validate', 'transform', 'save'];
     for (const step of steps) {
-      await env.sendStatus?.(`Processing: ${step}`);
+      await env.sendStatus(`Processing: ${step}`);
       await env.client.processStep(dataId, step);
     }
     
-    await env.sendStatus?.('Complete!');
+    await env.sendStatus('Complete!');
     
     return {
       success: true,
@@ -406,9 +392,13 @@ export const sync_data = createTool({
 
 **Solution:** Ensure you're passing the correct client when calling `createToolEnvironment` in your registration function.
 
+### Issue: `env.sendStatus` is not a function
+
+**Solution:** This should never happen since `sendStatus` is now required in `ToolEnvironment`. If you see this error, ensure you're using the updated `createToolEnvironment` helper that always provides `sendStatus`.
+
 ### Issue: Tests failing after refactoring
 
-**Solution:** Ensure tests are importing from the new tool files and that the environment is properly mocked in test setup.
+**Solution:** Ensure tests are importing from the new tool files and that the environment is properly mocked in test setup. You'll need to mock the `sendStatus` function since it's now required.
 
 ### Issue: Tools not being registered
 

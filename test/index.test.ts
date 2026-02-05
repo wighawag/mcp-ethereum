@@ -770,6 +770,7 @@ describe('MCP Ethereum Server Tests', () => {
 						to: TEST_CONTRACT_ADDRESS,
 						abi: NON_EXISTENT_FUNCTION_ABI,
 						args: [],
+						gas: '100000', // Provide gas to skip simulation
 					},
 				});
 				const txHash = JSON.parse(sendResult.content[0].text).txHash;

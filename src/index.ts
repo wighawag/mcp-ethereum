@@ -755,9 +755,13 @@ export function createServer(
 					.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
 					.optional()
 					.describe('Optional arguments to pass to the function'),
+				from: z
+					.string()
+					.optional()
+					.describe('Optional sender address to estimate gas from (default: wallet address)'),
 			},
 		},
-		async ({to, value, abi, args}, _extra): Promise<CallToolResult> => {
+		async ({to, value, abi, args, from}, _extra): Promise<CallToolResult> => {
 			try {
 				const request: any = {
 					to: to as `0x${string}`,
@@ -777,6 +781,13 @@ export function createServer(
 					}
 				}
 
+				if (from) {
+					request.account = from as `0x${string}`;
+				} else if (walletClient) {
+					// Use wallet client's account as the from address
+					request.account = walletClient.account.address;
+				}
+
 				const gasEstimate = await publicClient.estimateGas(request);
 
 				return {
@@ -786,6 +797,7 @@ export function createServer(
 							text: stringifyWithBigInt(
 								{
 									to,
+									from: from || (walletClient?.account.address),
 									value: value || '0',
 									gasEstimate: gasEstimate.toString(),
 									gasEstimateInGwei: Number(gasEstimate) / 1e9,

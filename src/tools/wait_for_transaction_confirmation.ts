@@ -9,7 +9,11 @@ export const wait_for_transaction_confirmation = createTool({
 			.regex(/^0x[a-fA-F0-9]{64}$/)
 			.describe('Transaction hash to monitor'),
 		confirmations: z.number().optional().describe('Number of confirmations to wait for').default(1),
-		interval: z.number().optional().describe('Interval in seconds between status checks').default(1),
+		interval: z
+			.number()
+			.optional()
+			.describe('Interval in seconds between status checks')
+			.default(1),
 		timeout: z.number().optional().describe('Timeout in milliseconds').default(300000),
 	}),
 	execute: async (env, {hash, confirmations, interval, timeout}) => {

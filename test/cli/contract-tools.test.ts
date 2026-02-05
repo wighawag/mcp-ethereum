@@ -171,7 +171,10 @@ describe('CLI - Contract Tools', () => {
 
 	describe('decode_calldata', () => {
 		it('should decode calldata with abi', async () => {
-			const transferCalldata = '0xa9059cbb000000000000000000000000' + TEST_ADDRESS.slice(2) + '0000000000000000000000000000000000000000000000000000000000000064';
+			const transferCalldata =
+				'0xa9059cbb000000000000000000000000' +
+				TEST_ADDRESS.slice(2) +
+				'0000000000000000000000000000000000000000000000000000000000000064';
 
 			const {stdout, exitCode} = await invokeCliCommand([
 				'decode_calldata',
@@ -190,7 +193,10 @@ describe('CLI - Contract Tools', () => {
 		});
 
 		it('should decode calldata without abi (auto-detect)', async () => {
-			const transferCalldata = '0xa9059cbb000000000000000000000000' + TEST_ADDRESS.slice(2) + '0000000000000000000000000000000000000000000000000000000000000064';
+			const transferCalldata =
+				'0xa9059cbb000000000000000000000000' +
+				TEST_ADDRESS.slice(2) +
+				'0000000000000000000000000000000000000000000000000000000000000064';
 
 			const {stdout, exitCode} = await invokeCliCommand([
 				'decode_calldata',

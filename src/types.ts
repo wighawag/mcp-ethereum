@@ -28,7 +28,9 @@ export type ToolResult =
  * Schema types that can be used for tool input parameters
  * Supports ZodObject directly or ZodUnion of ZodObjects (for mutually exclusive params)
  */
-export type ToolSchema = z.ZodObject<any> | z.ZodUnion<readonly [z.ZodObject<any>, ...z.ZodObject<any>[]]>;
+export type ToolSchema =
+	| z.ZodObject<any>
+	| z.ZodUnion<readonly [z.ZodObject<any>, ...z.ZodObject<any>[]]>;
 
 /**
  * Tool definition with execute, schema, and description

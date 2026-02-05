@@ -18,7 +18,7 @@ describe('CLI - Error Handling', () => {
 
 		it('should show error when missing required --txHash parameter', async () => {
 			const {stderr, exitCode} = await invokeCliCommand(['get_transaction']);
-	
+
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('required');
 			expect(stderr).toContain('--txHash');
@@ -63,11 +63,7 @@ describe('CLI - Error Handling', () => {
 
 	describe('missing RPC URL', () => {
 		it('should show error when --rpc-url is not provided and env var is not set', async () => {
-			const {stderr, exitCode} = await invokeCliCommand([
-				'get_balance',
-				'--address',
-				TEST_ADDRESS,
-			]);
+			const {stderr, exitCode} = await invokeCliCommand(['get_balance', '--address', TEST_ADDRESS]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
@@ -84,7 +80,7 @@ describe('CLI - Error Handling', () => {
 				['send_transaction', '--to', TEST_ADDRESS, '--rpc-url', 'http://localhost:8545'],
 				{
 					env: {ECLI_PRIVATE_KEY: invalidPrivateKey},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(1);
@@ -95,9 +91,15 @@ describe('CLI - Error Handling', () => {
 
 	describe('invalid parameter values', () => {
 		it('should show error for invalid blockTag value', async () => {
-			const {stderr, exitCode} = await invokeCliCommand(
-				['get_balance', '--address', TEST_ADDRESS, '--blockTag', 'invalid', '--rpc-url', 'http://localhost:8545']
-			);
+			const {stderr, exitCode} = await invokeCliCommand([
+				'get_balance',
+				'--address',
+				TEST_ADDRESS,
+				'--blockTag',
+				'invalid',
+				'--rpc-url',
+				'http://localhost:8545',
+			]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
@@ -106,9 +108,13 @@ describe('CLI - Error Handling', () => {
 		it('should show error for invalid address format', async () => {
 			const invalidAddress = 'not-an-address';
 
-			const {stderr, exitCode} = await invokeCliCommand(
-				['get_balance', '--address', invalidAddress, '--rpc-url', 'http://localhost:8545']
-			);
+			const {stderr, exitCode} = await invokeCliCommand([
+				'get_balance',
+				'--address',
+				invalidAddress,
+				'--rpc-url',
+				'http://localhost:8545',
+			]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
@@ -117,17 +123,15 @@ describe('CLI - Error Handling', () => {
 
 	describe('invalid ABI format', () => {
 		it('should show error for invalid ABI string', async () => {
-			const {stderr, exitCode} = await invokeCliCommand(
-				[
-					'call_contract',
-					'--address',
-					TEST_ADDRESS,
-					'--abi',
-					'not-a-valid-abi',
-					'--rpc-url',
-					'http://localhost:8545',
-				]
-			);
+			const {stderr, exitCode} = await invokeCliCommand([
+				'call_contract',
+				'--address',
+				TEST_ADDRESS,
+				'--abi',
+				'not-a-valid-abi',
+				'--rpc-url',
+				'http://localhost:8545',
+			]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
@@ -136,9 +140,13 @@ describe('CLI - Error Handling', () => {
 
 	describe('network errors', () => {
 		it('should show error for invalid RPC URL', async () => {
-			const {stderr, exitCode} = await invokeCliCommand(
-				['get_balance', '--address', TEST_ADDRESS, '--rpc-url', 'http://invalid-rpc-url:9999']
-			);
+			const {stderr, exitCode} = await invokeCliCommand([
+				'get_balance',
+				'--address',
+				TEST_ADDRESS,
+				'--rpc-url',
+				'http://invalid-rpc-url:9999',
+			]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
@@ -146,7 +154,7 @@ describe('CLI - Error Handling', () => {
 
 		it('should show error for non-existent transaction hash', async () => {
 			const fakeTxHash = '0x0000000000000000000000000000000000000000000000000000000000000001';
-	
+
 			const {stderr, exitCode} = await invokeCliCommand([
 				'get_transaction',
 				'--txHash',
@@ -154,7 +162,7 @@ describe('CLI - Error Handling', () => {
 				'--rpc-url',
 				'http://localhost:8545',
 			]);
-	
+
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
 		});
@@ -163,19 +171,31 @@ describe('CLI - Error Handling', () => {
 	describe('validation errors', () => {
 		it('should show validation error for invalid calldata format', async () => {
 			const invalidCalldata = 'not-valid-calldata';
-	
-			const {stderr, exitCode} = await invokeCliCommand(
-				['decode_calldata', '--calldata', invalidCalldata, '--abi', 'function transfer(address,uint256)', '--rpc-url', 'http://localhost:8545']
-			);
-	
+
+			const {stderr, exitCode} = await invokeCliCommand([
+				'decode_calldata',
+				'--calldata',
+				invalidCalldata,
+				'--abi',
+				'function transfer(address,uint256)',
+				'--rpc-url',
+				'http://localhost:8545',
+			]);
+
 			expect(exitCode).toBe(1);
 			expect(stderr.toLowerCase()).toContain('error');
 		});
 
 		it('should show validation error for invalid slot format', async () => {
-			const {stderr, exitCode} = await invokeCliCommand(
-				['get_storage_at', '--address', TEST_ADDRESS, '--slot', 'invalid', '--rpc-url', 'http://localhost:8545']
-			);
+			const {stderr, exitCode} = await invokeCliCommand([
+				'get_storage_at',
+				'--address',
+				TEST_ADDRESS,
+				'--slot',
+				'invalid',
+				'--rpc-url',
+				'http://localhost:8545',
+			]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
@@ -184,18 +204,34 @@ describe('CLI - Error Handling', () => {
 
 	describe('parameter type validation', () => {
 		it('should handle number parameters correctly', async () => {
-			const {stderr, exitCode} = await invokeCliCommand(
-				['get_fee_history', '--blockCount', 'invalid', '--newestBlock', 'latest', '--rewardPercentiles', '25', '--rpc-url', 'http://localhost:8545']
-			);
+			const {stderr, exitCode} = await invokeCliCommand([
+				'get_fee_history',
+				'--blockCount',
+				'invalid',
+				'--newestBlock',
+				'latest',
+				'--rewardPercentiles',
+				'25',
+				'--rpc-url',
+				'http://localhost:8545',
+			]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');
 		});
 
 		it('should handle array parameters correctly', async () => {
-			const {stderr, exitCode} = await invokeCliCommand(
-				['get_fee_history', '--blockCount', '4', '--newestBlock', 'latest', '--rewardPercentiles', 'invalid', '--rpc-url', 'http://localhost:8545']
-			);
+			const {stderr, exitCode} = await invokeCliCommand([
+				'get_fee_history',
+				'--blockCount',
+				'4',
+				'--newestBlock',
+				'latest',
+				'--rewardPercentiles',
+				'invalid',
+				'--rpc-url',
+				'http://localhost:8545',
+			]);
 
 			expect(exitCode).toBe(1);
 			expect(stderr).toContain('Error');

@@ -80,7 +80,7 @@ function escapeArg(arg: string): string {
  */
 export async function invokeCliCommand(
 	args: string[],
-	options?: InvokeOptions
+	options?: InvokeOptions,
 ): Promise<CliResult> {
 	const cliPath = getCliPath();
 	const escapedArgs = args.map(escapeArg).join(' ');
@@ -136,10 +136,9 @@ export async function invokeCliCommand(
  * This function is kept for backward compatibility but subprocess
  * testing handles environment isolation automatically.
  */
-export function setupCliTest(options?: {
-	rpcUrl?: string;
-	privateKey?: string;
-}): {restore: () => void} {
+export function setupCliTest(options?: {rpcUrl?: string; privateKey?: string}): {
+	restore: () => void;
+} {
 	const envVars = new Map<string, string | undefined>();
 
 	if (options?.rpcUrl !== undefined) {

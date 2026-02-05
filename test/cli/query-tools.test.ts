@@ -3,7 +3,12 @@
  */
 
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
-import {setupTestEnvironment, teardownTestEnvironment, TEST_ADDRESS, TEST_PRIVATE_KEY} from '../setup.js';
+import {
+	setupTestEnvironment,
+	teardownTestEnvironment,
+	TEST_ADDRESS,
+	TEST_PRIVATE_KEY,
+} from '../setup.js';
 import {TEST_CONTRACT_ADDRESS} from '../utils/data.js';
 import {RPC_URL} from '../prool/url.js';
 import {invokeCliCommand} from '../cli-utils.js';
@@ -19,7 +24,7 @@ describe('CLI - Query Tools', () => {
 			['send_transaction', '--to', TEST_ADDRESS, '--value', '1', '--rpc-url', RPC_URL],
 			{
 				env: {ECLI_PRIVATE_KEY: TEST_PRIVATE_KEY},
-			}
+			},
 		);
 		const txData = JSON.parse(sendResult.stdout);
 		txHash = txData.transactionHash;
@@ -193,7 +198,7 @@ describe('CLI - Query Tools', () => {
 				'--rpc-url',
 				RPC_URL,
 			]);
-	
+
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
 			expect(result.logs).toBeDefined();
@@ -233,7 +238,7 @@ describe('CLI - Query Tools', () => {
 				'--rpc-url',
 				RPC_URL,
 			]);
-	
+
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
 			expect(result.logs).toBeDefined();

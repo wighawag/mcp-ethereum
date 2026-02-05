@@ -3,7 +3,12 @@
  */
 
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
-import {setupTestEnvironment, teardownTestEnvironment, TEST_ADDRESS, TEST_PRIVATE_KEY} from '../setup.js';
+import {
+	setupTestEnvironment,
+	teardownTestEnvironment,
+	TEST_ADDRESS,
+	TEST_PRIVATE_KEY,
+} from '../setup.js';
 import {RPC_URL} from '../prool/url.js';
 import {invokeCliCommand, setupCliTest} from '../cli-utils.js';
 
@@ -18,9 +23,13 @@ describe('CLI - Global Options and Environment Variables', () => {
 
 	describe('--rpc-url global option', () => {
 		it('should use --rpc-url global option for commands', async () => {
-			const {stdout, exitCode} = await invokeCliCommand(
-				['--rpc-url', RPC_URL, 'get_balance', '--address', TEST_ADDRESS]
-			);
+			const {stdout, exitCode} = await invokeCliCommand([
+				'--rpc-url',
+				RPC_URL,
+				'get_balance',
+				'--address',
+				TEST_ADDRESS,
+			]);
 
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
@@ -28,9 +37,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 		});
 
 		it('should inherit --rpc-url from parent command', async () => {
-			const {stdout, exitCode} = await invokeCliCommand(
-				['--rpc-url', RPC_URL, 'get_block_number']
-			);
+			const {stdout, exitCode} = await invokeCliCommand(['--rpc-url', RPC_URL, 'get_block_number']);
 
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
@@ -40,9 +47,15 @@ describe('CLI - Global Options and Environment Variables', () => {
 
 	describe('--rpc-url local override', () => {
 		it('should allow local --rpc-url to override global --rpc-url', async () => {
-			const {stdout, exitCode} = await invokeCliCommand(
-				['--rpc-url', 'http://invalid-url:9999', 'get_balance', '--address', TEST_ADDRESS, '--rpc-url', RPC_URL]
-			);
+			const {stdout, exitCode} = await invokeCliCommand([
+				'--rpc-url',
+				'http://invalid-url:9999',
+				'get_balance',
+				'--address',
+				TEST_ADDRESS,
+				'--rpc-url',
+				RPC_URL,
+			]);
 
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
@@ -52,9 +65,12 @@ describe('CLI - Global Options and Environment Variables', () => {
 
 	describe('ECLI_RPC_URL environment variable', () => {
 		it('should use ECLI_RPC_URL environment variable when --rpc-url not provided', async () => {
-			const {stdout, exitCode} = await invokeCliCommand(['get_balance', '--address', TEST_ADDRESS], {
-				env: {ECLI_RPC_URL: RPC_URL},
-			});
+			const {stdout, exitCode} = await invokeCliCommand(
+				['get_balance', '--address', TEST_ADDRESS],
+				{
+					env: {ECLI_RPC_URL: RPC_URL},
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
@@ -76,7 +92,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['send_transaction', '--to', TEST_ADDRESS, '--value', '1'],
 				{
 					env: {ECLI_RPC_URL: RPC_URL, ECLI_PRIVATE_KEY: TEST_PRIVATE_KEY},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -87,9 +103,12 @@ describe('CLI - Global Options and Environment Variables', () => {
 
 	describe('RPC_URL environment variable (fallback)', () => {
 		it('should use RPC_URL environment variable when ECLI_RPC_URL not set', async () => {
-			const {stdout, exitCode} = await invokeCliCommand(['get_balance', '--address', TEST_ADDRESS], {
-				env: {RPC_URL: RPC_URL},
-			});
+			const {stdout, exitCode} = await invokeCliCommand(
+				['get_balance', '--address', TEST_ADDRESS],
+				{
+					env: {RPC_URL: RPC_URL},
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
@@ -103,7 +122,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['get_balance', '--address', TEST_ADDRESS, '--rpc-url', RPC_URL],
 				{
 					env: {ECLI_RPC_URL: 'http://invalid-url:9999'},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -116,7 +135,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['get_balance', '--address', TEST_ADDRESS, '--rpc-url', RPC_URL],
 				{
 					env: {RPC_URL: 'http://invalid-url:9999'},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -131,7 +150,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['send_transaction', '--to', TEST_ADDRESS, '--value', '1', '--rpc-url', RPC_URL],
 				{
 					env: {ECLI_PRIVATE_KEY: TEST_PRIVATE_KEY},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -144,7 +163,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['sign_message', '--message', 'Test message', '--rpc-url', RPC_URL],
 				{
 					env: {ECLI_PRIVATE_KEY: TEST_PRIVATE_KEY},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -159,7 +178,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['send_transaction', '--to', TEST_ADDRESS, '--value', '1', '--rpc-url', RPC_URL],
 				{
 					env: {PRIVATE_KEY: TEST_PRIVATE_KEY},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -172,7 +191,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['sign_message', '--message', 'Test message', '--rpc-url', RPC_URL],
 				{
 					env: {PRIVATE_KEY: TEST_PRIVATE_KEY},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -190,7 +209,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 				['send_transaction', '--to', TEST_ADDRESS, '--value', '1', '--rpc-url', RPC_URL],
 				{
 					env: {ECLI_PRIVATE_KEY: validKey, PRIVATE_KEY: invalidKey},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -201,9 +220,12 @@ describe('CLI - Global Options and Environment Variables', () => {
 
 	describe('ECLI_RPC_URL precedence over RPC_URL', () => {
 		it('should prefer ECLI_RPC_URL over RPC_URL environment variable', async () => {
-			const {stdout, exitCode} = await invokeCliCommand(['get_balance', '--address', TEST_ADDRESS], {
-				env: {ECLI_RPC_URL: RPC_URL, RPC_URL: 'http://invalid-url:9999'},
-			});
+			const {stdout, exitCode} = await invokeCliCommand(
+				['get_balance', '--address', TEST_ADDRESS],
+				{
+					env: {ECLI_RPC_URL: RPC_URL, RPC_URL: 'http://invalid-url:9999'},
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);
@@ -267,7 +289,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 						ECLI_RPC_URL: RPC_URL,
 						ECLI_PRIVATE_KEY: TEST_PRIVATE_KEY,
 					},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);
@@ -283,7 +305,7 @@ describe('CLI - Global Options and Environment Variables', () => {
 						RPC_URL: RPC_URL,
 						PRIVATE_KEY: TEST_PRIVATE_KEY,
 					},
-				}
+				},
 			);
 
 			expect(exitCode).toBe(0);

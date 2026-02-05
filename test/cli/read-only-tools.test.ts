@@ -52,9 +52,12 @@ describe('CLI - Read-Only Tools', () => {
 		});
 
 		it('should use ECLI_RPC_URL environment variable', async () => {
-			const {stdout, exitCode} = await invokeCliCommand(['get_balance', '--address', TEST_ADDRESS], {
-				env: {ECLI_RPC_URL: RPC_URL},
-			});
+			const {stdout, exitCode} = await invokeCliCommand(
+				['get_balance', '--address', TEST_ADDRESS],
+				{
+					env: {ECLI_RPC_URL: RPC_URL},
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			const result = JSON.parse(stdout);

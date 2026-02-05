@@ -116,7 +116,9 @@ function unwrapZodType(field: z.ZodTypeAny): z.ZodTypeAny {
 /**
  * Check if schema is a ZodUnion of ZodObjects
  */
-function isSchemaUnion(schema: ToolSchema): schema is z.ZodUnion<readonly [z.ZodObject<any>, ...z.ZodObject<any>[]]> {
+function isSchemaUnion(
+	schema: ToolSchema,
+): schema is z.ZodUnion<readonly [z.ZodObject<any>, ...z.ZodObject<any>[]]> {
 	return schema instanceof z.ZodUnion;
 }
 
@@ -125,14 +127,16 @@ function isSchemaUnion(schema: ToolSchema): schema is z.ZodUnion<readonly [z.Zod
  * For unions, collects all fields from all options
  * Returns a map of fieldName -> {field, isOptional}
  */
-function extractSchemaFields(schema: ToolSchema): Map<string, {field: z.ZodTypeAny; isOptional: boolean}> {
+function extractSchemaFields(
+	schema: ToolSchema,
+): Map<string, {field: z.ZodTypeAny; isOptional: boolean}> {
 	const fields = new Map<string, {field: z.ZodTypeAny; isOptional: boolean}>();
 
 	if (isSchemaUnion(schema)) {
 		// For unions, collect all fields from all options
 		// A field is required only if it's required in ALL options
 		const allOptions = schema.options as readonly z.ZodObject<any>[];
-		
+
 		// First pass: collect all unique field names
 		const allFieldNames = new Set<string>();
 		for (const option of allOptions) {
@@ -353,7 +357,10 @@ export function generateToolCommand(
 /**
  * Register all tool commands from a tools object
  */
-export function registerAllToolCommands(program: Command, tools: Record<string, Tool<ToolSchema>>): void {
+export function registerAllToolCommands(
+	program: Command,
+	tools: Record<string, Tool<ToolSchema>>,
+): void {
 	for (const [toolName, tool] of Object.entries(tools)) {
 		generateToolCommand(program, toolName, tool);
 	}

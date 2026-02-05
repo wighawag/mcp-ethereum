@@ -15,7 +15,7 @@ export function createServer(
 
 	const server = new McpServer(
 		options?.serverInfo || {
-			name: 'mcp-ethereum-server',
+			name: 'tools-ethereum-mcp-server',
 			version: pkg.version,
 		},
 		options?.serverOptions || {capabilities: {logging: {}}},

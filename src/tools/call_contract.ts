@@ -7,15 +7,38 @@ export const call_contract = createTool({
 	description: 'Call a read-only contract function (view/pure) without spending gas',
 	schema: z.object({
 		address: z.string().describe('Contract address to call'),
-		abi: z.string().describe('Function ABI (e.g., "function balanceOf(address) returns (uint256)" or "function totalSupply() returns (uint256)")'),
-		args: z.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())])).optional().describe('Optional arguments to pass to the function'),
+		abi: z
+			.string()
+			.describe(
+				'Function ABI (e.g., "function balanceOf(address) returns (uint256)" or "function totalSupply() returns (uint256)")',
+			),
+		args: z
+			.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
+			.optional()
+			.describe('Optional arguments to pass to the function'),
 		blockTag: z
-			.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+			.union([
+				z.literal('latest'),
+				z.literal('pending'),
+				z.literal('finalized'),
+				z.literal('safe'),
+				z.string(),
+			])
 			.optional()
 			.describe('Block tag to query (default: "latest")'),
 	}),
 	execute: async (env, {address, abi, args, blockTag}) => {
-		const abiItem = parseAbiItem(abi);
+		let abiItem: AbiFunction;
+
+		try {
+			abiItem = parseAbiItem(abi) as AbiFunction;
+		} catch (error) {
+			return {
+				success: false,
+				error: 'Invalid ABI provided',
+			};
+		}
+
 		if (abiItem.type !== 'function') {
 			return {
 				success: false,
@@ -30,6 +53,8 @@ export const call_contract = createTool({
 			args: args as any[],
 			blockTag: blockTag as any,
 		});
+
+		console.log('Result:', result);
 
 		return {
 			success: true,

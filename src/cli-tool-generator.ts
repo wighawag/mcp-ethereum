@@ -19,13 +19,31 @@ function zodFieldToOption(name: string, field: z.ZodTypeAny): string {
 }
 
 /**
+ * Check if a ZodUnion contains a number type
+ */
+function unionContainsNumber(field: z.ZodUnion<any>): boolean {
+	for (const option of field.options) {
+		if (option instanceof z.ZodNumber) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Parse option value based on Zod type
  */
 function parseOptionValue(field: z.ZodTypeAny, value: any): any {
 	// Handle array types - parse comma-separated values
 	if (field instanceof z.ZodArray) {
 		if (typeof value === 'string') {
-			return value.split(',').map((v) => v.trim());
+			// Check if array element type is number
+			const elementType = field.element;
+			const items = value.split(',').map((v) => v.trim());
+			if (elementType instanceof z.ZodNumber) {
+				return items.map((v) => Number(v));
+			}
+			return items;
 		}
 		return value;
 	}
@@ -38,6 +56,19 @@ function parseOptionValue(field: z.ZodTypeAny, value: any): any {
 	// Handle boolean types
 	if (field instanceof z.ZodBoolean) {
 		return value === true || value === 'true';
+	}
+
+	// Handle union types - try to convert to number if the union includes a number type
+	if (field instanceof z.ZodUnion) {
+		if (unionContainsNumber(field)) {
+			// If the value looks like a number, convert it
+			const numValue = Number(value);
+			if (!isNaN(numValue) && typeof value === 'string' && /^\d+$/.test(value)) {
+				return numValue;
+			}
+		}
+		// Otherwise return as-is (likely a literal string like 'latest')
+		return value;
 	}
 
 	// Default to string
@@ -102,6 +133,16 @@ async function parseAndValidateParams(
 }
 
 /**
+ * Replacer function for JSON.stringify to handle BigInt values
+ */
+function bigIntReplacer(_key: string, value: any): any {
+	if (typeof value === 'bigint') {
+		return value.toString();
+	}
+	return value;
+}
+
+/**
  * Format tool result for CLI output
  */
 function formatToolResult(result: {
@@ -111,7 +152,7 @@ function formatToolResult(result: {
 	stack?: string;
 }): void {
 	if (result.success) {
-		console.log(JSON.stringify(result.result, null, 2));
+		console.log(JSON.stringify(result.result, bigIntReplacer, 2));
 	} else {
 		console.error('Error:', result.error);
 		if (result.stack) {

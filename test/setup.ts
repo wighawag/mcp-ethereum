@@ -41,6 +41,10 @@ let testContext: TestContext | null = null;
  * @returns Test context with server, client, and RPC clients
  */
 export async function setupTestEnvironment(): Promise<TestContext> {
+	if (testContext) {
+		return testContext;
+	}
+
 	const rpcUrl = RPC_URL;
 
 	// Create chain with local RPC

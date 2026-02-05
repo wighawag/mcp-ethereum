@@ -66,7 +66,7 @@ export async function setupTestEnvironment(): Promise<TestContext> {
 	});
 
 	assert(
-		deploymentReceipt.contractAddress.toLowerCase() === TEST_CONTRACT_ADDRESS.toLowerCase(),
+		deploymentReceipt.contractAddress?.toLowerCase() === TEST_CONTRACT_ADDRESS.toLowerCase(),
 		`Expected contract address ${TEST_CONTRACT_ADDRESS}, but got ${deploymentReceipt.contractAddress}`,
 	);
 

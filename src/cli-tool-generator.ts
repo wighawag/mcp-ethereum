@@ -154,16 +154,16 @@ export function generateToolCommand(
 			// Get global options (includes --rpc-url from parent)
 			const globalOptions = program.opts();
 
-			// Use local --rpc-url if provided, otherwise use global
-			const rpcUrl = options.rpcUrl || globalOptions.rpcUrl;
+			// Use local --rpc-url if provided, otherwise use global, otherwise use env var (prefixed first, then generic)
+			const rpcUrl = options.rpcUrl || globalOptions.rpcUrl || process.env.ECLI_RPC_URL || process.env.RPC_URL;
 
 			if (!rpcUrl) {
-				console.error('Error: --rpc-url option is required');
+				console.error('Error: --rpc-url option or ECLI_RPC_URL (or RPC_URL) environment variable is required');
 				process.exit(1);
 			}
 
-			// Get PRIVATE_KEY from environment
-			const privateKey = process.env.PRIVATE_KEY;
+			// Get private key from environment (prefixed first, then generic)
+			const privateKey = process.env.ECLI_PRIVATE_KEY || process.env.PRIVATE_KEY;
 
 			// Validate PRIVATE_KEY format if provided
 			if (privateKey && !privateKey.startsWith('0x')) {

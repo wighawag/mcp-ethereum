@@ -28,24 +28,25 @@ program
 	.action(async () => {
 		const options = program.opts();
 
-		const privateKey = process.env.PRIVATE_KEY;
+		const privateKey = process.env.ECLI_PRIVATE_KEY || process.env.PRIVATE_KEY;
 		if (!privateKey) {
 			console.warn(
-				'Warning: PRIVATE_KEY environment variable is required for sending transactions',
+				'Warning: ECLI_PRIVATE_KEY (or PRIVATE_KEY) environment variable is required for sending transactions',
 			);
 		} else if (!privateKey.startsWith('0x')) {
-			console.error('Error: PRIVATE_KEY must start with 0x');
+			console.error('Error: Private key must start with 0x');
 			process.exit(1);
 		}
 
-		if (!options.rpcUrl) {
-			console.error('Error: --rpc-url option is required');
+		const rpcUrl = options.rpcUrl || process.env.ECLI_RPC_URL || process.env.RPC_URL;
+		if (!rpcUrl) {
+			console.error('Error: --rpc-url option or ECLI_RPC_URL (or RPC_URL) environment variable is required');
 			process.exit(1);
 		}
 
 		const transport = new StdioServerTransport();
 
-		const chain = await getChain(options.rpcUrl);
+		const chain = await getChain(rpcUrl);
 		const server = createServer({
 			chain,
 			privateKey: privateKey as `0x${string}`,

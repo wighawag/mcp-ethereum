@@ -1,0 +1,91 @@
+import {z} from 'zod';
+import type {PublicClient, WalletClient} from 'viem';
+import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+
+/**
+ * Environment provided to tool execute functions
+ */
+export type ToolEnvironment = {
+	/** Optional function to send status updates during tool execution */
+	sendStatus?: (message: string) => Promise<void>;
+	/** Public client for read-only operations */
+	publicClient: PublicClient;
+	/** Optional wallet client for transaction signing */
+	walletClient?: WalletClient;
+};
+
+/**
+ * Result returned by tool execute functions
+ * Success case: {success: true, result: Record<string, any>}
+ * Error case: {success: false, error: string, stack?: string}
+ */
+export type ToolResult =
+	| {success: true; result: Record<string, any>}
+	| {success: false; error: string; stack?: string};
+
+/**
+ * Tool definition with execute, schema, and description
+ * @template S - Zod schema type for input parameters
+ */
+export type Tool<S extends z.ZodObject<any> = z.ZodObject<any>> = {
+	/** Description of what the tool does */
+	description: string;
+	/** Zod schema for input parameters */
+	schema: S;
+	/**
+	 * Execute function that receives environment and parameters
+	 * @param env - Tool environment with clients and optional sendStatus
+	 * @param params - Parameters inferred from schema
+	 * @returns ToolResult with success/error state
+	 */
+	execute: (env: ToolEnvironment, params: z.infer<S>) => Promise<ToolResult>;
+};
+
+/**
+ * Parameters for tool registration
+ */
+export type RegisterToolParams<S extends z.ZodObject<any>> = {
+	/** MCP server instance */
+	server: McpServer;
+	/** Tool name (snake_case) */
+	name: string;
+	/** Tool definition */
+	tool: Tool<S>;
+	/** Whether to provide sendStatus in environment (default: false) */
+	withSendStatus?: boolean;
+	/** MCP call extra params */
+	extra?: {sessionId?: string};
+};
+
+/**
+ * Convert ToolResult to CallToolResult format
+ */
+export function convertToCallToolResult(result: ToolResult): CallToolResult {
+	if (result.success === false) {
+		return {
+			content: [
+				{
+					type: 'text',
+					text: JSON.stringify({
+						error: result.error,
+						...(result.stack ? {stack: result.stack} : {}),
+					}),
+				},
+			],
+			isError: true,
+		};
+	}
+
+	return {
+		content: [
+			{
+				type: 'text',
+				text: JSON.stringify(result.result, (_key, value) =>
+					typeof value === 'bigint' ? value.toString() : value,
+					2,
+				),
+			},
+		],
+	};
+}

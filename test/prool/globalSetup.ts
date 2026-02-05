@@ -6,7 +6,6 @@ export default async function setup() {
 	);
 	const shutdown = await Promise.all([
 		...Object.values(instances).map((instance) => {
-			console.log('Starting instance', instance);
 			return instance.start();
 		}),
 	]);

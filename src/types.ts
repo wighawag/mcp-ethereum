@@ -7,8 +7,8 @@ import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
  * Environment provided to tool execute functions
  */
 export type ToolEnvironment = {
-	/** Optional function to send status updates during tool execution */
-	sendStatus?: (message: string) => Promise<void>;
+	/** function to send status updates during tool execution */
+	sendStatus: (message: string) => Promise<void>;
 	/** Public client for read-only operations */
 	publicClient: PublicClient;
 	/** Optional wallet client for transaction signing */
@@ -65,10 +65,6 @@ export type RegisterToolParams<S extends z.ZodObject<any>> = {
 	name: string;
 	/** Tool definition */
 	tool: Tool<S>;
-	/** Whether to provide sendStatus in environment (default: false) */
-	withSendStatus?: boolean;
-	/** MCP call extra params */
-	extra?: {sessionId?: string};
 };
 
 /**
@@ -94,8 +90,9 @@ export function convertToCallToolResult(result: ToolResult): CallToolResult {
 		content: [
 			{
 				type: 'text',
-				text: JSON.stringify(result.result, (_key, value) =>
-					typeof value === 'bigint' ? value.toString() : value,
+				text: JSON.stringify(
+					result.result,
+					(_key, value) => (typeof value === 'bigint' ? value.toString() : value),
 					2,
 				),
 			},

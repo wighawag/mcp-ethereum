@@ -72,16 +72,10 @@ export function createToolEnvironment(
 	server: McpServer,
 	publicClient: PublicClient,
 	walletClient: WalletClient | undefined,
-	withSendStatus: boolean,
 	sessionId: string | undefined,
 ): ToolEnvironment {
 	const env: ToolEnvironment = {
-		publicClient,
-		walletClient,
-	};
-
-	if (withSendStatus) {
-		env.sendStatus = async (message: string) => {
+		sendStatus: async (message: string) => {
 			try {
 				await server.sendLoggingMessage(
 					{
@@ -93,8 +87,10 @@ export function createToolEnvironment(
 			} catch (error) {
 				console.error('Error sending notification:', error);
 			}
-		};
-	}
+		},
+		publicClient,
+		walletClient,
+	};
 
 	return env;
 }
@@ -145,12 +141,10 @@ export function registerTool<S extends z.ZodObject<any>>(
 		server,
 		name,
 		tool,
-		withSendStatus = false,
 	}: {
 		server: McpServer;
 		name: string;
 		tool: Tool<S>;
-		withSendStatus?: boolean;
 	},
 	publicClient: PublicClient,
 	walletClient: WalletClient | undefined,
@@ -162,13 +156,7 @@ export function registerTool<S extends z.ZodObject<any>>(
 			inputSchema: tool.schema as any,
 		},
 		(async (params: any, mcpExtra: any): Promise<CallToolResult> => {
-			const env = createToolEnvironment(
-				server,
-				publicClient,
-				walletClient,
-				withSendStatus,
-				mcpExtra.sessionId,
-			);
+			const env = createToolEnvironment(server, publicClient, walletClient, mcpExtra.sessionId);
 
 			try {
 				const result = await tool.execute(env, params as z.infer<S>);

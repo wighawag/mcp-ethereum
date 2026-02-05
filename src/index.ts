@@ -31,7 +31,6 @@ export function createServer(
 				server,
 				name,
 				tool,
-				withSendStatus: TOOLS_WITH_STATUS.has(name),
 			},
 			publicClient,
 			walletClient,

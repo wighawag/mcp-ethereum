@@ -31,7 +31,7 @@ export const wait_for_transaction_confirmation = createTool({
 					const confirmations = Number(currentBlockNumber - txBlockNumber);
 
 					if (receipt.status === 'reverted') {
-						await env?.sendStatus?.(`Transaction ${txHash} was reverted`);
+						await env.sendStatus(`Transaction ${txHash} was reverted`);
 
 						const transaction = await env.publicClient.getTransaction({
 							hash: txHash as `0x${string}`,
@@ -57,7 +57,7 @@ export const wait_for_transaction_confirmation = createTool({
 					});
 
 					if (confirmations >= expectedConformations) {
-						await env?.sendStatus?.(
+						await env.sendStatus(
 							`Transaction ${txHash} confirmed with ${confirmations} confirmations`,
 						);
 
@@ -74,16 +74,16 @@ export const wait_for_transaction_confirmation = createTool({
 						};
 					}
 
-					await env?.sendStatus?.(
+					await env.sendStatus(
 						`Transaction ${txHash} included in block ${txBlockNumber}. Waiting for ${expectedConformations - confirmations} more confirmations...`,
 					);
 				} else {
-					await env?.sendStatus?.(
+					await env.sendStatus(
 						`Transaction ${txHash} not yet mined. Checking again in ${interval} seconds...`,
 					);
 				}
 			} catch (error) {
-				await env?.sendStatus?.(
+				await env.sendStatus(
 					`Error checking transaction status: ${error instanceof Error ? error.message : String(error)}`,
 				);
 			}

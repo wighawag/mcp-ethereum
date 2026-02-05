@@ -159,9 +159,9 @@ export function registerTool<S extends z.ZodObject<any>>(
 		name,
 		{
 			description: tool.description,
-			inputSchema: tool.schema,
+			inputSchema: tool.schema as any,
 		},
-		async (params, mcpExtra) => {
+		(async (params: any, mcpExtra: any): Promise<CallToolResult> => {
 			const env = createToolEnvironment(
 				server,
 				publicClient,
@@ -171,7 +171,7 @@ export function registerTool<S extends z.ZodObject<any>>(
 			);
 
 			try {
-				const result = await tool.execute(env, params);
+				const result = await tool.execute(env, params as z.infer<S>);
 				return convertToCallToolResult(result);
 			} catch (error) {
 				const errorResult = {
@@ -181,6 +181,6 @@ export function registerTool<S extends z.ZodObject<any>>(
 				};
 				return convertToCallToolResult(errorResult);
 			}
-		},
+		}) as any,
 	);
 }

@@ -7,7 +7,9 @@ export const decode_calldata = createTool({
 	description: 'Decode transaction calldata using function ABI',
 	schema: z.object({
 		data: z.string().describe('Transaction calldata to decode'),
-		abi: z.string().describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
+		abi: z
+			.string()
+			.describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
 	}),
 	execute: async (env, {data, abi}) => {
 		const abiItem = parseAbiItem(abi);

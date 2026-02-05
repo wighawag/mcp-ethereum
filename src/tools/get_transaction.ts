@@ -4,7 +4,10 @@ import {createTool} from '../types.js';
 export const get_transaction = createTool({
 	description: 'Get full transaction details by hash',
 	schema: z.object({
-		txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).describe('Transaction hash to get details for'),
+		txHash: z
+			.string()
+			.regex(/^0x[a-fA-F0-9]{64}$/)
+			.describe('Transaction hash to get details for'),
 	}),
 	execute: async (env, {txHash}) => {
 		const transaction = await env.publicClient.getTransaction({

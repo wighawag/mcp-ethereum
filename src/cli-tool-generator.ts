@@ -104,7 +104,12 @@ async function parseAndValidateParams(
 /**
  * Format tool result for CLI output
  */
-function formatToolResult(result: {success: boolean; result?: any; error?: string; stack?: string}): void {
+function formatToolResult(result: {
+	success: boolean;
+	result?: any;
+	error?: string;
+	stack?: string;
+}): void {
 	if (result.success) {
 		console.log(JSON.stringify(result.result, null, 2));
 	} else {
@@ -133,7 +138,9 @@ export function generateToolCommand(
 	// Add options for each schema field
 	for (const [fieldName, field] of Object.entries(shape)) {
 		// Unwrap optional fields
-		const actualField = isOptionalField(field as z.ZodTypeAny) ? (field as z.ZodOptional<any>).unwrap() : field;
+		const actualField = isOptionalField(field as z.ZodTypeAny)
+			? (field as z.ZodOptional<any>).unwrap()
+			: field;
 		const optionDef = zodFieldToOption(fieldName, actualField);
 		const description = getFieldDescription(actualField);
 
@@ -155,10 +162,13 @@ export function generateToolCommand(
 			const globalOptions = program.opts();
 
 			// Use local --rpc-url if provided, otherwise use global, otherwise use env var (prefixed first, then generic)
-			const rpcUrl = options.rpcUrl || globalOptions.rpcUrl || process.env.ECLI_RPC_URL || process.env.RPC_URL;
+			const rpcUrl =
+				options.rpcUrl || globalOptions.rpcUrl || process.env.ECLI_RPC_URL || process.env.RPC_URL;
 
 			if (!rpcUrl) {
-				console.error('Error: --rpc-url option or ECLI_RPC_URL (or RPC_URL) environment variable is required');
+				console.error(
+					'Error: --rpc-url option or ECLI_RPC_URL (or RPC_URL) environment variable is required',
+				);
 				process.exit(1);
 			}
 
@@ -189,10 +199,7 @@ export function generateToolCommand(
 			const validatedParams = await parseAndValidateParams(tool.schema, params);
 
 			// Create tool environment
-			const env = await createCliToolEnvironment(
-				rpcUrl,
-				privateKey as `0x${string}` | undefined,
-			);
+			const env = await createCliToolEnvironment(rpcUrl, privateKey as `0x${string}` | undefined);
 
 			// Execute the tool
 			const result = await tool.execute(env, validatedParams);

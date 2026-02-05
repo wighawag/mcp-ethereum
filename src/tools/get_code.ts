@@ -6,7 +6,13 @@ export const get_code = createTool({
 	schema: z.object({
 		address: z.string().describe('Address to get code from'),
 		blockTag: z
-			.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+			.union([
+				z.literal('latest'),
+				z.literal('pending'),
+				z.literal('finalized'),
+				z.literal('safe'),
+				z.string(),
+			])
 			.optional()
 			.describe('Block tag to query (default: "latest")'),
 	}),

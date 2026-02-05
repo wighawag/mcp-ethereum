@@ -40,7 +40,9 @@ program
 
 		const rpcUrl = options.rpcUrl || process.env.ECLI_RPC_URL || process.env.RPC_URL;
 		if (!rpcUrl) {
-			console.error('Error: --rpc-url option or ECLI_RPC_URL (or RPC_URL) environment variable is required');
+			console.error(
+				'Error: --rpc-url option or ECLI_RPC_URL (or RPC_URL) environment variable is required',
+			);
 			process.exit(1);
 		}
 

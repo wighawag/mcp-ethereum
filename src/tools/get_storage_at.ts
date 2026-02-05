@@ -7,7 +7,13 @@ export const get_storage_at = createTool({
 		address: z.string().describe('Contract address'),
 		slot: z.union([z.string(), z.number()]).describe('Storage slot (hex string or number)'),
 		blockTag: z
-			.union([z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe'), z.string()])
+			.union([
+				z.literal('latest'),
+				z.literal('pending'),
+				z.literal('finalized'),
+				z.literal('safe'),
+				z.string(),
+			])
 			.optional()
 			.describe('Block tag to query (default: "latest")'),
 	}),

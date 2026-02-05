@@ -1,5 +1,10 @@
 import {describe, it, expect, beforeAll, afterAll} from 'vitest';
-import {setupTestEnvironment, teardownTestEnvironment, getTestContext, TEST_ADDRESS} from './setup.js';
+import {
+	setupTestEnvironment,
+	teardownTestEnvironment,
+	getTestContext,
+	TEST_ADDRESS,
+} from './setup.js';
 import {callToolWithTextResponse} from './utils/index.js';
 import {TEST_CONTRACT_ADDRESS} from './utils/data.js';
 

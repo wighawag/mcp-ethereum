@@ -6,8 +6,12 @@ import type {AbiFunction} from 'viem';
 export const encode_calldata = createTool({
 	description: 'Encode function arguments for transactions',
 	schema: z.object({
-		abi: z.string().describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
-		args: z.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())])).describe('Arguments to pass to the function'),
+		abi: z
+			.string()
+			.describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
+		args: z
+			.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
+			.describe('Arguments to pass to the function'),
 	}),
 	execute: async (env, {abi, args}) => {
 		const abiItem = parseAbiItem(abi);

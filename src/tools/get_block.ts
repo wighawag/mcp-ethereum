@@ -5,11 +5,20 @@ export const get_block = createTool({
 	description: 'Get a specific block by number or hash',
 	schema: z.object({
 		blockNumber: z
-			.union([z.number(), z.literal('latest'), z.literal('pending'), z.literal('finalized'), z.literal('safe')])
+			.union([
+				z.number(),
+				z.literal('latest'),
+				z.literal('pending'),
+				z.literal('finalized'),
+				z.literal('safe'),
+			])
 			.optional()
 			.describe('Block number or tag (default: "latest")'),
 		blockHash: z.string().optional().describe('Block hash (alternative to blockNumber)'),
-		includeTransactions: z.boolean().optional().describe('Whether to include full transaction list (default: false)'),
+		includeTransactions: z
+			.boolean()
+			.optional()
+			.describe('Whether to include full transaction list (default: false)'),
 	}),
 	execute: async (env, {blockNumber, blockHash, includeTransactions}) => {
 		let block;

@@ -49,20 +49,86 @@ export async function setupTestEnvironment(): Promise<TestContext> {
 	const walletClient = createWalletClient({chain, transport: http(rpcUrl)});
 	const publicClient = createPublicClient({chain, transport: http(rpcUrl)});
 
-	// Deploy test contract
-	const hashForDeployment = await walletClient.deployContract({
-		abi: TEST_CONTRACT_ABI,
-		args: [TEST_ADDRESS, 1_000_000n],
-		bytecode: TEST_CONTRACT_BYTECODE,
-		account: TEST_DEPLOYER_ADDRESS,
-	});
+	// Wait for the RPC to be ready with retries
+	let retries = 10;
+	let blockNumber: bigint | null = null;
+	while (retries > 0) {
+		try {
+			blockNumber = await publicClient.getBlockNumber();
+			if (blockNumber !== undefined && blockNumber !== null) {
+				break;
+			}
+		} catch (error) {
+			console.log(`RPC not ready yet, retries left: ${retries}`);
+		}
+		retries--;
+		await new Promise((resolve) => setTimeout(resolve, 500));
+	}
 
-	const receiptForDeployment = await publicClient.waitForTransactionReceipt({
-		hash: hashForDeployment,
-	});
+	if (blockNumber === null || blockNumber === undefined) {
+		throw new Error('Failed to connect to RPC after multiple retries');
+	}
+
+	console.log(`RPC ready at block ${blockNumber}`);
+
+	// Deploy test contract with retry mechanism
+	let deploymentReceipt: Awaited<ReturnType<typeof publicClient.waitForTransactionReceipt>> | null = null;
+	let deploymentHash: `0x${string}` | null = null;
+	let deploymentRetries = 3;
+
+	while (deploymentRetries > 0 && !deploymentReceipt) {
+		try {
+			console.log(`Attempting contract deployment (retries left: ${deploymentRetries})`);
+			deploymentHash = await walletClient.deployContract({
+				abi: TEST_CONTRACT_ABI,
+				args: [TEST_ADDRESS, 1_000_000n],
+				bytecode: TEST_CONTRACT_BYTECODE,
+				account: TEST_DEPLOYER_ADDRESS,
+			});
+
+			console.log(`Deployment transaction hash: ${deploymentHash}`);
+			deploymentReceipt = await publicClient.waitForTransactionReceipt({
+				hash: deploymentHash,
+				timeoutMs: 10000, // 10 second timeout
+			});
+
+			// Check if transaction was successful
+			if (deploymentReceipt.status !== 'success') {
+				throw new Error(
+					`Contract deployment failed. Transaction hash: ${deploymentHash}, Status: ${deploymentReceipt.status}`,
+				);
+			}
+
+			// Check if contract address exists
+			if (!deploymentReceipt.contractAddress) {
+				throw new Error(
+					`Contract deployment did not return a contract address. Transaction hash: ${deploymentHash}`,
+				);
+			}
+
+			console.log(`Contract deployed at: ${deploymentReceipt.contractAddress}`);
+		} catch (error) {
+			console.error(`Deployment attempt failed:`, error);
+			deploymentRetries--;
+			if (deploymentRetries > 0) {
+				console.log(`Retrying deployment in 1 second...`);
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+			} else {
+				throw new Error(
+					`Failed to deploy contract after 3 attempts. Last error: ${error instanceof Error ? error.message : String(error)}`,
+				);
+			}
+		}
+	}
+
+	if (!deploymentReceipt || !deploymentReceipt.contractAddress) {
+		throw new Error('Contract deployment failed: No receipt or contract address');
+	}
+
 	assert(
-		receiptForDeployment.contractAddress?.toLowerCase() ===
+		deploymentReceipt.contractAddress.toLowerCase() ===
 			'0x5FbDB2315678afecb367f032d93F642f64180aa3'.toLowerCase(),
+		`Expected contract address 0x5FbDB2315678afecb367f032d93F642f64180aa3, but got ${deploymentReceipt.contractAddress}`,
 	);
 
 	// Transfer some tokens to test address

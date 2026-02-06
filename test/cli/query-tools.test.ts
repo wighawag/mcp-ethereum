@@ -185,16 +185,15 @@ describe('CLI - Query Tools', () => {
 		});
 
 		// Note: eventAbis parameter with complex event signatures containing commas
-		// is not well-suited for CLI usage due to comma-separated array parsing.
-		// This test is skipped as it would require shell escaping complexity.
-		// Use the MCP interface for complex event ABIs instead.
-		it.skip('should get logs with eventAbis parameter', async () => {
+		// works when commas are escaped with backslash (\,)
+		it('should get logs with eventAbis parameter', async () => {
 			const {stdout, exitCode} = await invokeCliCommand([
 				'get_contract_logs',
 				'--contractAddress',
 				TEST_CONTRACT_ADDRESS,
 				'--eventAbis',
-				'event Transfer(address indexed from, address indexed to, uint256 amount)',
+				// Escape commas with backslash to prevent comma-separated array parsing
+				'event Transfer(address indexed from\\, address indexed to\\, uint256 amount)',
 				'--rpc-url',
 				RPC_URL,
 			]);
@@ -225,16 +224,15 @@ describe('CLI - Query Tools', () => {
 		});
 
 		// Note: eventAbis parameter with complex event signatures containing commas
-		// is not well-suited for CLI usage due to comma-separated array parsing.
-		// This test is skipped as it would require shell escaping complexity.
-		// Use the MCP interface for complex event ABIs instead.
-		it.skip('should get logs with event parameter (full event signature)', async () => {
+		// works when commas are escaped with backslash (\,)
+		it('should get logs with event parameter (full event signature)', async () => {
 			const {stdout, exitCode} = await invokeCliCommand([
 				'get_contract_logs',
 				'--contractAddress',
 				TEST_CONTRACT_ADDRESS,
 				'--eventAbis',
-				'event Transfer(address indexed from, address indexed to, uint256 amount)',
+				// Escape commas with backslash to prevent comma-separated array parsing
+				'event Transfer(address indexed from\\, address indexed to\\, uint256 amount)',
 				'--rpc-url',
 				RPC_URL,
 			]);

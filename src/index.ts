@@ -1,6 +1,8 @@
 import {getChain, getClients} from './helpers.js';
 import {ClientsWithOptionalWallet, EnvFactoryOptions, EthereumEnv} from './types.js';
 
+export {createServer as createEthereumMPCServer} from './mcp.js';
+
 /**
  * Factory function to create the ConquestEnv
  * This is shared between CLI and MCP server

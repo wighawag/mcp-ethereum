@@ -1,5 +1,11 @@
 # tools-ethereum
 
+## 0.0.4
+
+### Patch Changes
+
+- export createServer
+
 ## 0.0.3
 
 ### Patch Changes

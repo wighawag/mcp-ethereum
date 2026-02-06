@@ -1,7 +1,36 @@
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import {Tool, ToolResult} from './types.js';
-import {createToolEnvironment} from './index.js';
+import {Tool, ToolResult, ToolEnvironment} from './types.js';
 import {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+
+/**
+ * Create tool environment with MCP logging support
+ * @template TEnv - Environment properties type
+ * @param server - MCP server instance for sending logging messages
+ * @param env - Environment properties to spread into the tool environment
+ * @param sessionId - Optional session ID for targeting specific client
+ */
+function createToolEnvironmentWithMCP<TEnv extends Record<string, any>>(
+	server: McpServer,
+	env: TEnv,
+	sessionId?: string,
+): ToolEnvironment<TEnv> {
+	return {
+		sendStatus: async (message: string) => {
+			try {
+				await server.sendLoggingMessage(
+					{
+						level: 'info',
+						data: message,
+					},
+					sessionId,
+				);
+			} catch (error) {
+				// Silently ignore logging errors to not disrupt tool execution
+			}
+		},
+		...env,
+	};
+}
 
 /**
  * Convert ToolResult to CallToolResult format
@@ -57,8 +86,9 @@ export function registerMCPTool<TEnv extends Record<string, any>>({
 			description: tool.description,
 			inputSchema: tool.schema as any,
 		},
-		async (params: unknown) => {
-			const toolEnv = createToolEnvironment(env);
+		async (params: unknown, mcpExtra: any) => {
+			// Create tool environment with proper MCP sendStatus
+			const toolEnv = createToolEnvironmentWithMCP(server, env, mcpExtra?.sessionId);
 
 			try {
 				const result = await tool.execute(toolEnv, params as any);

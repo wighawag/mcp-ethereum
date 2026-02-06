@@ -8,10 +8,10 @@ import {
 	ERC20_TRANSFER_ABI,
 } from '../setup.js';
 import {callToolWithTextResponse} from '../utils/index.js';
-import {createServer} from '../../src/index.js';
+import {createEthereumEnv} from '../../src/index.js';
+import {createServer} from '../../src/mcp.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {Client} from '@modelcontextprotocol/sdk/client';
-import {getChain} from '../../src/helpers.js';
 
 describe('Transaction Tools', () => {
 	beforeAll(async () => {
@@ -114,10 +114,11 @@ describe('Transaction Tools', () => {
 
 		it('should return error when sending transaction without private key', async () => {
 			const {rpcUrl} = getTestContextForMPCServer();
-			// Create a server without private key
-			const serverWithoutKey = createServer({
-				chain: await getChain(rpcUrl),
+			const env = createEthereumEnv({
+				rpcUrl,
 			});
+			// Create a server without private key
+			const serverWithoutKey = createServer(env);
 
 			// Connect using in-memory transport
 			const [clientTransport2, serverTransport2] = InMemoryTransport.createLinkedPair();

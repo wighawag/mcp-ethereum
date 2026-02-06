@@ -60,8 +60,17 @@ export function registerMCPTool<TEnv extends Record<string, any>>({
 		async (params: unknown) => {
 			const toolEnv = createToolEnvironment(env);
 
-			const result = await tool.execute(toolEnv, params as any);
-			return convertToCallToolResult(result);
+			try {
+				const result = await tool.execute(toolEnv, params as any);
+				return convertToCallToolResult(result);
+			} catch (error) {
+				const errorResult: {success: false; error: string; stack?: string} = {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+				};
+				return convertToCallToolResult(errorResult);
+			}
 		},
 	);
 }

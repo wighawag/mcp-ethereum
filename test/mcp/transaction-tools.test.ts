@@ -114,7 +114,7 @@ describe('Transaction Tools', () => {
 
 		it('should return error when sending transaction without private key', async () => {
 			const {rpcUrl} = getTestContextForMPCServer();
-			const env = createEthereumEnv({
+			const env = await createEthereumEnv({
 				rpcUrl,
 			});
 			// Create a server without private key

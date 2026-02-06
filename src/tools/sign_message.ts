@@ -1,11 +1,13 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
+import {EthereumEnv} from '../types.js';
 
-export const sign_message = createTool({
+const schema = z.object({
+	message: z.string().describe('Message to sign'),
+});
+export const sign_message = createTool<typeof schema, EthereumEnv>({
 	description: 'Sign a message using the wallet (personal_sign)',
-	schema: z.object({
-		message: z.string().describe('Message to sign'),
-	}),
+	schema,
 	execute: async (env, {message}) => {
 		if (!env.walletClient) {
 			return {

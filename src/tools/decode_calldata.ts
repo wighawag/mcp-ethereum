@@ -1,17 +1,19 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
 import {parseAbiItem, decodeFunctionData} from 'viem';
 import type {AbiFunction} from 'viem';
+import {createTool} from '../tool-handling/types.js';
+import {EthereumEnv} from '../types.js';
 
-export const decode_calldata = createTool({
+const schema = z.object({
+	calldata: z.string().describe('Transaction calldata to decode'),
+	abi: z
+		.string()
+		.optional()
+		.describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
+});
+export const decode_calldata = createTool<typeof schema, EthereumEnv>({
 	description: 'Decode transaction calldata using function ABI',
-	schema: z.object({
-		calldata: z.string().describe('Transaction calldata to decode'),
-		abi: z
-			.string()
-			.optional()
-			.describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
-	}),
+	schema,
 	execute: async (env, {calldata, abi}) => {
 		// If no ABI provided, just return the raw calldata info (selector)
 		if (!abi) {

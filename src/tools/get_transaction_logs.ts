@@ -1,22 +1,24 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
 import {parseAbiItem, decodeEventLog} from 'viem';
 import type {AbiEvent} from 'viem';
+import {createTool} from '../tool-handling/types.js';
+import {EthereumEnv} from '../types.js';
 
-export const get_transaction_logs = createTool({
+const schema = z.object({
+	txHash: z
+		.string()
+		.regex(/^0x[a-fA-F0-9]{64}$/)
+		.describe('Transaction hash to get logs from'),
+	eventAbis: z
+		.array(z.string())
+		.optional()
+		.describe(
+			'Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format',
+		),
+});
+export const get_transaction_logs = createTool<typeof schema, EthereumEnv>({
 	description: 'Get the events/logs of a transaction, optionally decoding them using event ABI',
-	schema: z.object({
-		txHash: z
-			.string()
-			.regex(/^0x[a-fA-F0-9]{64}$/)
-			.describe('Transaction hash to get logs from'),
-		eventAbis: z
-			.array(z.string())
-			.optional()
-			.describe(
-				'Optional list of event ABIs to decode logs. Can be Solidity format (e.g., "event Transfer(address indexed from, address indexed to, uint256 amount)") or JSON format',
-			),
-	}),
+	schema,
 	execute: async (env, {txHash, eventAbis}) => {
 		const receipt = await env.publicClient.getTransactionReceipt({
 			hash: txHash as `0x${string}`,

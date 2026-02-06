@@ -1,25 +1,27 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {EthereumEnv} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
 
-export const get_block = createTool({
+const schema = z.object({
+	blockNumber: z
+		.union([
+			z.number(),
+			z.literal('latest'),
+			z.literal('pending'),
+			z.literal('finalized'),
+			z.literal('safe'),
+		])
+		.optional()
+		.describe('Block number or tag (default: "latest")'),
+	blockHash: z.string().optional().describe('Block hash (alternative to blockNumber)'),
+	includeTransactions: z
+		.boolean()
+		.optional()
+		.describe('Whether to include full transaction list (default: false)'),
+});
+export const get_block = createTool<typeof schema, EthereumEnv>({
 	description: 'Get a specific block by number or hash',
-	schema: z.object({
-		blockNumber: z
-			.union([
-				z.number(),
-				z.literal('latest'),
-				z.literal('pending'),
-				z.literal('finalized'),
-				z.literal('safe'),
-			])
-			.optional()
-			.describe('Block number or tag (default: "latest")'),
-		blockHash: z.string().optional().describe('Block hash (alternative to blockNumber)'),
-		includeTransactions: z
-			.boolean()
-			.optional()
-			.describe('Whether to include full transaction list (default: false)'),
-	}),
+	schema,
 	execute: async (env, {blockNumber, blockHash, includeTransactions}) => {
 		let block;
 		if (blockHash) {

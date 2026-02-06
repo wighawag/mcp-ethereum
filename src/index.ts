@@ -1,39 +1,25 @@
-import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import pkg from '../package.json' with {type: 'json'};
-import {Implementation} from '@modelcontextprotocol/sdk/types.js';
-import {Chain} from 'viem';
-import {ServerOptions} from '@modelcontextprotocol/sdk/server';
-import {getClients} from './helpers.js';
-import {registerTool} from './helpers.js';
-import type {Tool} from './types.js';
-import * as tools from './tools/index.js';
+import {getChain, getClients} from './helpers.js';
+import {ClientsWithOptionalWallet, EnvFactoryOptions, EthereumEnv} from './types.js';
 
-export function createServer(
-	params: {chain: Chain; privateKey?: `0x${string}`},
-	options?: {rpcURL?: string; serverOptions?: ServerOptions; serverInfo?: Implementation},
-) {
-	const {publicClient, walletClient} = getClients(params, options);
+/**
+ * Factory function to create the ConquestEnv
+ * This is shared between CLI and MCP server
+ *
+ * @param options - Configuration options for creating the environment
+ * @returns ConquestEnv with fleetManager and planetManager
+ */
+export async function createEthereumEnv(options: EnvFactoryOptions): Promise<EthereumEnv> {
+	const {rpcUrl, privateKey} = options;
 
-	const server = new McpServer(
-		options?.serverInfo || {
-			name: 'tools-ethereum-mcp-server',
-			version: pkg.version,
-		},
-		options?.serverOptions || {capabilities: {logging: {}}},
-	);
+	const chain = await getChain(rpcUrl);
+	const clients = getClients({
+		chain,
+		privateKey,
+	}) as ClientsWithOptionalWallet;
 
-	// Register all tools in a loop
-	for (const [name, tool] of Object.entries(tools)) {
-		registerTool(
-			{
-				server,
-				name,
-				tool: tool as Tool,
-			},
-			publicClient,
-			walletClient,
-		);
-	}
-
-	return server;
+	return {
+		walletClient: clients.walletClient,
+		publicClient: clients.publicClient,
+		options,
+	};
 }

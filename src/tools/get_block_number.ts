@@ -1,9 +1,11 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {EthereumEnv} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
 
-export const get_block_number = createTool({
+const schema = z.object({});
+export const get_block_number = createTool<typeof schema, EthereumEnv>({
 	description: 'Get current block number',
-	schema: z.object({}),
+	schema,
 	execute: async (env) => {
 		const blockNumber = await env.publicClient.getBlockNumber();
 

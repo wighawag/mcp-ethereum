@@ -1,9 +1,11 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {EthereumEnv} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
 
-export const get_gas_price = createTool({
+const schema = z.object({});
+export const get_gas_price = createTool<typeof schema, EthereumEnv>({
 	description: 'Get current gas price',
-	schema: z.object({}),
+	schema,
 	execute: async (env) => {
 		const [gasPrice, feeData] = await Promise.all([
 			env.publicClient.getGasPrice(),

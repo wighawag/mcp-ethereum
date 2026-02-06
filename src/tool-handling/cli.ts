@@ -1,9 +1,13 @@
 import {Command} from 'commander';
 import {z} from 'zod';
 import type {Tool, ToolSchema} from './types.js';
-import {getChain} from './helpers.js';
-import {getClients} from './helpers.js';
-import type {ToolEnvironment} from './types.js';
+import {createToolEnvironmentFromFactory} from './index.js';
+
+/**
+ * Factory that create the Environment
+ * @template TEnv - Environment type passed to tools
+ */
+export type EnvFactory<TEnv extends Record<string, any>> = () => Promise<TEnv> | TEnv;
 
 /**
  * Convert Zod schema field to commander.js option definition
@@ -187,28 +191,6 @@ function extractSchemaFields(
 }
 
 /**
- * Create a CLI tool environment for executing tools
- */
-async function createCliToolEnvironment(
-	rpcUrl: string,
-	privateKey?: `0x${string}`,
-): Promise<ToolEnvironment> {
-	const chain = await getChain(rpcUrl);
-	const {publicClient, walletClient} = getClients({
-		chain,
-		privateKey: privateKey as `0x${string}` | undefined,
-	});
-
-	return {
-		publicClient,
-		walletClient,
-		sendStatus: async (msg: string) => {
-			console.error(`[Status] ${msg}`);
-		},
-	};
-}
-
-/**
  * Parse and validate parameters against Zod schema
  */
 async function parseAndValidateParams(
@@ -260,11 +242,13 @@ function formatToolResult(result: {
 
 /**
  * Generate a single tool command from tool definition
+ * @template TEnv - Environment type passed to tools
  */
-export function generateToolCommand(
+export function generateToolCommand<TEnv extends Record<string, any>>(
 	program: Command,
 	toolName: string,
-	tool: Tool<ToolSchema>,
+	tool: Tool<z.ZodObject<any>, TEnv>,
+	envFactory: EnvFactory<TEnv>,
 ): void {
 	// Extract fields from schema (handles both ZodObject and ZodUnion)
 	const schemaFields = extractSchemaFields(tool.schema);
@@ -287,35 +271,8 @@ export function generateToolCommand(
 		}
 	}
 
-	// Add --rpc-url option (can override global)
-	cmd.option('--rpc-url <url>', 'RPC URL for the Ethereum network (overrides global)');
-
-	// Command action handler
 	cmd.action(async (options: Record<string, any>) => {
 		try {
-			// Get global options (includes --rpc-url from parent)
-			const globalOptions = program.opts();
-
-			// Use local --rpc-url if provided, otherwise use global, otherwise use env var (prefixed first, then generic)
-			const rpcUrl =
-				options.rpcUrl || globalOptions.rpcUrl || process.env.ECLI_RPC_URL || process.env.RPC_URL;
-
-			if (!rpcUrl) {
-				console.error(
-					'Error: --rpc-url option or ECLI_RPC_URL (or RPC_URL) environment variable is required',
-				);
-				process.exit(1);
-			}
-
-			// Get private key from environment (prefixed first, then generic)
-			const privateKey = process.env.ECLI_PRIVATE_KEY || process.env.PRIVATE_KEY;
-
-			// Validate PRIVATE_KEY format if provided
-			if (privateKey && !privateKey.startsWith('0x')) {
-				console.error('Error: PRIVATE_KEY must start with 0x');
-				process.exit(1);
-			}
-
 			// Parse and validate parameters against schema
 			const params: Record<string, any> = {};
 
@@ -332,13 +289,10 @@ export function generateToolCommand(
 			// Validate against schema
 			const validatedParams = await parseAndValidateParams(tool.schema, params);
 
-			// Create tool environment
-			const env = await createCliToolEnvironment(rpcUrl, privateKey as `0x${string}` | undefined);
+			// Create environment and execute
+			const env = await createToolEnvironmentFromFactory(envFactory);
 
-			// Execute the tool
 			const result = await tool.execute(env, validatedParams);
-
-			// Format and output result
 			formatToolResult(result);
 		} catch (error) {
 			if (error instanceof Error) {
@@ -356,12 +310,18 @@ export function generateToolCommand(
 
 /**
  * Register all tool commands from a tools object
+ * @template TEnv - Environment type passed to tools
  */
-export function registerAllToolCommands(
+export function registerAllToolCommands<TEnv extends Record<string, any>>(
 	program: Command,
-	tools: Record<string, Tool<ToolSchema>>,
+	tools: Record<string, Tool<any, TEnv>>,
+	envFactory: EnvFactory<TEnv>,
 ): void {
 	for (const [toolName, tool] of Object.entries(tools)) {
-		generateToolCommand(program, toolName, tool);
+		// Skip the file that's not a tool
+		if (toolName === 'default') continue;
+
+		// Keep snake_case for CLI command names (1:1 mapping with tool names)
+		generateToolCommand(program, toolName, tool, envFactory);
 	}
 }

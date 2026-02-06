@@ -1,21 +1,23 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {EthereumEnv} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
 
-export const get_balance = createTool({
+const schema = z.object({
+	address: z.string().describe('Address to check balance'),
+	blockTag: z
+		.union([
+			z.literal('latest'),
+			z.literal('pending'),
+			z.literal('finalized'),
+			z.literal('safe'),
+			z.string(),
+		])
+		.optional()
+		.describe('Block tag to query (default: "latest")'),
+});
+export const get_balance = createTool<typeof schema, EthereumEnv>({
 	description: 'Get ETH balance for an address',
-	schema: z.object({
-		address: z.string().describe('Address to check balance'),
-		blockTag: z
-			.union([
-				z.literal('latest'),
-				z.literal('pending'),
-				z.literal('finalized'),
-				z.literal('safe'),
-				z.string(),
-			])
-			.optional()
-			.describe('Block tag to query (default: "latest")'),
-	}),
+	schema,
 	execute: async (env, {address, blockTag}) => {
 		const balance = await env.publicClient.getBalance({
 			address: address as `0x${string}`,

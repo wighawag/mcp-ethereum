@@ -1,14 +1,16 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
+import {EthereumEnv} from '../types.js';
 
-export const get_transaction = createTool({
+const schema = z.object({
+	txHash: z
+		.string()
+		.regex(/^0x[a-fA-F0-9]{64}$/)
+		.describe('Transaction hash to get details for'),
+});
+export const get_transaction = createTool<typeof schema, EthereumEnv>({
 	description: 'Get full transaction details by hash',
-	schema: z.object({
-		txHash: z
-			.string()
-			.regex(/^0x[a-fA-F0-9]{64}$/)
-			.describe('Transaction hash to get details for'),
-	}),
+	schema,
 	execute: async (env, {txHash}) => {
 		const transaction = await env.publicClient.getTransaction({
 			hash: txHash as `0x${string}`,

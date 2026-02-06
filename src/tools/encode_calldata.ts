@@ -1,19 +1,20 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
 import {parseAbiItem, encodeFunctionData} from 'viem';
 import type {AbiFunction} from 'viem';
+import {createTool} from '../tool-handling/types.js';
+import {EthereumEnv} from '../types.js';
 
-export const encode_calldata = createTool({
+const schema = z.object({
+	abi: z.string().describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
+	args: z
+		.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
+		.optional()
+		.describe('Optional arguments to pass to the function'),
+});
+
+export const encode_calldata = createTool<typeof schema, EthereumEnv>({
 	description: 'Encode function arguments for transactions',
-	schema: z.object({
-		abi: z
-			.string()
-			.describe('Function ABI (e.g., "function transfer(address to, uint256 amount)")'),
-		args: z
-			.array(z.union([z.string(), z.number(), z.boolean(), z.array(z.any())]))
-			.optional()
-			.describe('Optional arguments to pass to the function'),
-	}),
+	schema,
 	execute: async (env, {abi, args}) => {
 		const abiItem = parseAbiItem(abi);
 		if (abiItem.type !== 'function') {

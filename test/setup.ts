@@ -1,13 +1,13 @@
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {Client} from '@modelcontextprotocol/sdk/client';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
-import {createServer} from '../src/index.js';
 import {getChain} from '../src/helpers.js';
 import {Chain, createPublicClient, createWalletClient, http} from 'viem';
 import {TEST_CONTRACT_ABI, TEST_CONTRACT_ADDRESS, TEST_CONTRACT_BYTECODE} from './utils/data.js';
 import {assert} from 'vitest';
 import {RPC_URL} from './prool/url.js';
-import test from 'node:test';
+import {createEthereumEnv} from '../src/index.js';
+import {createServer} from '../src/mcp.js';
 
 // Test addresses
 export const TEST_DEPLOYER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'; // acount 1
@@ -103,11 +103,13 @@ export async function setupTestEnvironmentForMPCServer(): Promise<TestContextWit
 
 	const testContext = await setupTestEnvironment();
 
-	// Create MCP server
-	const server = createServer({
-		chain: testContext.chain,
+	const env = await createEthereumEnv({
+		rpcUrl: testContext.rpcUrl,
 		privateKey: TEST_PRIVATE_KEY,
 	});
+
+	// Create MCP server
+	const server = createServer(env);
 
 	// Connect using an in-memory transport
 	const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -130,6 +132,7 @@ export async function setupTestEnvironmentForMPCServer(): Promise<TestContextWit
 export async function teardownTestEnvironment(): Promise<void> {
 	if (testContextForMPCServer) {
 		await testContextForMPCServer.client.close();
+		testContextForMPCServer = null;
 	}
 	testContext = null;
 }

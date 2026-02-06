@@ -1,7 +1,8 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
 import {parseAbiItem, encodeFunctionData} from 'viem';
 import type {AbiFunction} from 'viem';
+import {EthereumEnv} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
 
 // Base schema for common fields
 const baseSchema = {
@@ -53,7 +54,7 @@ const simpleSchema = z.object({
 // Combined schema using union - type-safe mutual exclusivity
 const estimateGasSchema = z.union([dataSchema, abiArgsSchema, simpleSchema]);
 
-export const estimate_gas = createTool({
+export const estimate_gas = createTool<typeof estimateGasSchema, EthereumEnv>({
 	description:
 		'Estimate gas cost for a transaction before sending. Provide either "data" OR "abi"+"args", not both.',
 	schema: estimateGasSchema,

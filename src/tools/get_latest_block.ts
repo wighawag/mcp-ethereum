@@ -1,9 +1,11 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
+import {EthereumEnv} from '../types.js';
 
-export const get_latest_block = createTool({
+const schema = z.object({});
+export const get_latest_block = createTool<typeof schema, EthereumEnv>({
 	description: 'Get the latest block information',
-	schema: z.object({}),
+	schema,
 	execute: async (env) => {
 		const block = await env.publicClient.getBlock();
 

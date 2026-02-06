@@ -1,4 +1,112 @@
-import {program} from './commands.js';
+#!/usr/bin/env node
+import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
+import {createServer} from './mcp.js';
+import {Command} from 'commander';
+import pkg from '../package.json' with {type: 'json'};
+import {EnvFactory, registerAllToolCommands} from './tool-handling/cli.js';
+import * as tools from './tools/index.js';
+import {EthereumEnv} from './types.js';
+import {createEthereumEnv} from './index.js';
 
-// Parse the command line arguments
+export const program = new Command();
+
+const binName = Object.keys(pkg.bin)[0];
+
+// ----------------------------------------------------------------------------
+// GLOBAL OPTIONS
+// ----------------------------------------------------------------------------
+program
+	.name(binName)
+	.description(pkg.description)
+	.version(pkg.version)
+	// Global option - inherited by all subcommands
+	.option(
+		'--rpc-url <url>',
+		'RPC URL for the Ethereum network',
+		process.env.ECLI_RPC_URL || process.env.RPC_URL || '',
+	)
+	.action(() => {
+		// Show help if no command is specified
+		program.help();
+	});
+
+function gatherGlobalOptions(program: Command) {
+	const globalOptions = program.opts();
+	const rpcUrl = globalOptions.rpcUrl;
+	const gameContract = globalOptions.gameContract;
+
+	const storage = globalOptions.storage;
+	const storagePath = globalOptions.storagePath;
+
+	// Validate required options
+	if (!rpcUrl) {
+		console.error('Error: --rpc-url option or RPC_URL environment variable is required');
+		process.exit(1);
+	}
+
+	const privateKey = (process.env.ECLI_PRIVATE_KEY || process.env.PRIVATE_KEY) as `0x${string}`;
+	// Warn if private key is not provided for write operations
+	if (!privateKey) {
+		console.warn('Warning: PRIVATE_KEY environment variable is required for sending transactions');
+	} else if (!privateKey.startsWith('0x')) {
+		console.error('Error: PRIVATE_KEY must start with 0x');
+		process.exit(1);
+	}
+
+	return {rpcUrl, gameContract, privateKey, storage, storagePath};
+}
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// FACTORY THAT GENERATE THE  Environment Used By Tools
+// ----------------------------------------------------------------------------
+/**
+ * Factory function to create the environemtn
+ */
+const envFactory: EnvFactory<EthereumEnv> = async () => {
+	const {rpcUrl, privateKey} = gatherGlobalOptions(program);
+
+	return createEthereumEnv({
+		rpcUrl,
+		privateKey,
+	});
+};
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// MCP subcommand - starts the MCP server
+// ----------------------------------------------------------------------------
+program
+	.command('mcp')
+	.description('Start the MCP server')
+	.action(async () => {
+		const env = await envFactory();
+
+		const transport = new StdioServerTransport();
+		const server = createServer(env);
+		await server.connect(transport);
+	});
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Register all tool commands dynamically with the CLI config
+registerAllToolCommands(program, tools, envFactory);
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// HANDLE unknown command
+// ----------------------------------------------------------------------------
+const args = process.argv.slice(2);
+const registeredCommands = program.commands.map((cmd) => cmd.name());
+
+// Check if the first argument is a known command or a global flag
+const isKnown = registeredCommands.includes(args[0]) || args[0]?.startsWith('-');
+
+if (args.length > 0 && !isKnown) {
+	console.error(`error: unknown command: ${args[0]}`);
+	program.outputHelp();
+	process.exit(1);
+}
+// ----------------------------------------------------------------------------
+
 program.parse(process.argv);

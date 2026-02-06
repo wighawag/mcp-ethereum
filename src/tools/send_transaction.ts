@@ -1,6 +1,7 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
 import {encodeFunctionData, parseAbiItem} from 'viem';
+import {createTool} from '../tool-handling/types.js';
+import {EthereumEnv} from '../types.js';
 
 // Base schema for common fields
 const baseSchema = {
@@ -44,12 +45,12 @@ const simpleSchema = z.object({
 });
 
 // Combined schema using union - type-safe mutual exclusivity
-const sendTransactionSchema = z.union([dataSchema, abiArgsSchema, simpleSchema]);
+const schema = z.union([dataSchema, abiArgsSchema, simpleSchema]);
 
-export const send_transaction = createTool({
+export const send_transaction = createTool<typeof schema, EthereumEnv>({
 	description:
 		'Send a transaction, optionally calling a contract function with ABI. Provide either "data" OR "abi"+"args", not both.',
-	schema: sendTransactionSchema,
+	schema,
 	execute: async (env, params) => {
 		const {to, value, from, maxFeePerGas, maxPriorityFeePerGas, gas, nonce} = params;
 

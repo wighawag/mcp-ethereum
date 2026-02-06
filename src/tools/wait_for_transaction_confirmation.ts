@@ -1,21 +1,20 @@
 import {z} from 'zod';
-import {createTool} from '../types.js';
+import {EthereumEnv} from '../types.js';
+import {createTool} from '../tool-handling/types.js';
 
-export const wait_for_transaction_confirmation = createTool({
+const schema = z.object({
+	hash: z
+		.string()
+		.regex(/^0x[a-fA-F0-9]{64}$/)
+		.describe('Transaction hash to monitor'),
+	confirmations: z.number().optional().describe('Number of confirmations to wait for').default(1),
+	interval: z.number().optional().describe('Interval in seconds between status checks').default(1),
+	timeout: z.number().optional().describe('Timeout in milliseconds').default(300000),
+});
+
+export const wait_for_transaction_confirmation = createTool<typeof schema, EthereumEnv>({
 	description: 'Wait For Transaction Confirmation',
-	schema: z.object({
-		hash: z
-			.string()
-			.regex(/^0x[a-fA-F0-9]{64}$/)
-			.describe('Transaction hash to monitor'),
-		confirmations: z.number().optional().describe('Number of confirmations to wait for').default(1),
-		interval: z
-			.number()
-			.optional()
-			.describe('Interval in seconds between status checks')
-			.default(1),
-		timeout: z.number().optional().describe('Timeout in milliseconds').default(300000),
-	}),
+	schema,
 	execute: async (env, {hash, confirmations, interval, timeout}) => {
 		const txHash = hash;
 		const expectedConfirmations = confirmations ?? 1;
